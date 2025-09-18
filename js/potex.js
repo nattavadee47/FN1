@@ -1,5 +1,38 @@
 // simple-physio-script.js
 // ระบบตรวจจับท่าทางแบบง่าย
+const API_CONFIG = {
+    RENDER_URL: 'https://bn1-1.onrender.com',
+    LOCAL_URL: 'http://localhost:4000', 
+    TIMEOUT: 10000
+};
+
+// Test and determine which API to use
+async function getApiBaseUrl() {
+    try {
+        console.log('🌐 Testing Render API connection...');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        const response = await fetch(`${API_CONFIG.RENDER_URL}/health`, {
+            method: 'GET',
+            signal: controller.signal,
+            headers: { 'Accept': 'application/json' }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+            console.log('✅ Render API is available');
+            return API_CONFIG.RENDER_URL;
+        }
+    } catch (error) {
+        console.log('⚠️ Render API not available:', error.message);
+    }
+    
+    // Fallback to localhost
+    console.log('🔄 Using localhost as fallback');
+    return API_CONFIG.LOCAL_URL;
+}
 
 // Global Variables
 let physioApp = null;
