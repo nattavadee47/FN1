@@ -1,22 +1,62 @@
 // ========================================
 // User Account Registration System - แก้ไขปัญหาการสมัครสมาชิก
-// useraccoun.js - เวอร์ชันสมบูรณ์แบบ
+// useraccoun.js - เวอร์ชันสมบูรณ์แบบ (Updated for Render)
 // ========================================
+
+// API Configuration for Render
+const API_CONFIG = {
+    RENDER_URL: 'https://bn1-1.onrender.com',
+    LOCAL_URL: 'http://localhost:3000',
+    TIMEOUT: 15000 // 15 seconds timeout for registration
+};
+
+// Test and determine which API to use
+async function getApiBaseUrl() {
+    try {
+        console.log('🌐 Testing Render API connection...');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        const response = await fetch(`${API_CONFIG.RENDER_URL}/api/health`, {
+            method: 'GET',
+            signal: controller.signal,
+            headers: { 'Accept': 'application/json' }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+            console.log('✅ Render API is available');
+            return `${API_CONFIG.RENDER_URL}/api/auth`;
+        }
+    } catch (error) {
+        console.log('⚠️ Render API not available:', error.message);
+    }
+    
+    // Fallback to localhost
+    console.log('🔄 Using localhost as fallback');
+    return `${API_CONFIG.LOCAL_URL}/api/auth`;
+}
 
 class RegistrationSystem {
     constructor() {
         this.config = {
-            apiBaseUrl: 'http://localhost:3000/api/auth',
+            apiBaseUrl: null, // Will be determined dynamically
             currentStep: 1,
             totalSteps: 2,
             formData: {},
-            validationRules: this.getValidationRules()
+            validationRules: this.getValidationRules(),
+            connectionTimeout: API_CONFIG.TIMEOUT
         };
         this.init();
     }
 
-    init() {
+    async init() {
         console.log('🚀 Starting Registration System initialization...');
+        
+        // Determine API base URL
+        this.config.apiBaseUrl = await getApiBaseUrl();
+        console.log('📡 Using API:', this.config.apiBaseUrl);
         
         this.bindEvents();
         
@@ -235,7 +275,6 @@ class RegistrationSystem {
         console.log('✅ All birth date fields populated successfully');
     }
 
-    // ฟังก์ชันใหม่สำหรับการจัดการวันที่ให้ถูกต้อง
     setupBirthDateValidation() {
         const daySelect = document.getElementById('birthDate');
         const monthSelect = document.getElementById('birthMonth');
@@ -282,11 +321,6 @@ class RegistrationSystem {
         yearSelect.addEventListener('change', updateDaysInMonth);
         
         console.log('✅ Birth date validation setup complete');
-    }
-
-    // ฟังก์ชันเดิมที่ยังใช้งานได้ (เปลี่ยนชื่อเพื่อ backward compatibility)
-    populateBirthYears() {
-        this.populateBirthFields();
     }
 
     setupPasswordStrength() {
@@ -554,6 +588,29 @@ class RegistrationSystem {
         }
     }
 
+    /**
+     * Make API request with timeout
+     */
+    async makeApiRequest(endpoint, options = {}) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.config.connectionTimeout);
+
+        try {
+            const response = await fetch(`${this.config.apiBaseUrl}${endpoint}`, {
+                ...options,
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            return response;
+        } catch (error) {
+            clearTimeout(timeoutId);
+            if (error.name === 'AbortError') {
+                throw new Error('Request timeout - Render API might be sleeping');
+            }
+            throw error;
+        }
+    }
+
     async handleSubmit(event) {
         event.preventDefault();
         
@@ -570,7 +627,9 @@ class RegistrationSystem {
         try {
             this.showLoading(true);
 
-            const response = await fetch(`${this.config.apiBaseUrl}/register`, {
+            console.log('📡 Attempting registration with:', this.config.apiBaseUrl);
+
+            const response = await this.makeApiRequest('/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -586,7 +645,13 @@ class RegistrationSystem {
             if (response.ok && result.success) {
                 // Success - store user data as backup
                 this.storeRegistrationBackup(this.config.formData);
-                this.showSuccessModal();
+                
+                const isRender = this.config.apiBaseUrl.includes('render.com');
+                const successMessage = isRender ? 
+                    'สมัครสมาชิกเรียบร้อยแล้ว (บันทึกผ่าน Render)' : 
+                    'สมัครสมาชิกเรียบร้อยแล้ว';
+                    
+                this.showSuccessModal(successMessage);
             } else {
                 console.error('❌ Registration failed:', result.message);
                 this.showErrorModal(result.message || 'ไม่สามารถสมัครสมาชิกได้ กรุณาลองใหม่อีกครั้ง');
@@ -614,7 +679,8 @@ class RegistrationSystem {
             const user = {
                 id: Date.now(),
                 ...formData,
-                created_at: new Date().toISOString()
+                created_at: new Date().toISOString(),
+                source: this.config.apiBaseUrl.includes('render.com') ? 'render' : 'localhost'
             };
             
             // Add to array
@@ -756,7 +822,12 @@ class RegistrationSystem {
         if (submitButton) {
             submitButton.disabled = show;
             if (show) {
-                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>กำลังสมัครสมาชิก...</span>';
+                const isRender = this.config.apiBaseUrl && this.config.apiBaseUrl.includes('render.com');
+                const loadingText = isRender ? 
+                    'กำลังสมัครสมาชิก (Render)...' : 
+                    'กำลังสมัครสมาชิก...';
+                    
+                submitButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i><span>${loadingText}</span>`;
             } else {
                 submitButton.innerHTML = '<i class="fas fa-check"></i><span>ลงทะเบียน</span>';
             }

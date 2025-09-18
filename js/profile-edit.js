@@ -1,18 +1,55 @@
 // ========================================
 // Profile Edit JavaScript - การจัดการหน้าแก้ไขข้อมูลส่วนตัว
-// profile-edit.js (ฉบับสมบูรณ์)
+// profile-edit.js (ฉบับสมบูรณ์ - Updated for Render)
 // ========================================
+
+// API Configuration for Render
+const API_CONFIG = {
+    RENDER_URL: 'https://bn1-1.onrender.com',
+    LOCAL_URL: 'http://localhost:3000',
+    TIMEOUT: 15000 // 15 seconds timeout
+};
+
+// Test and determine which API to use
+async function getApiBaseUrl() {
+    try {
+        console.log('🌐 Testing Render API connection...');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        const response = await fetch(`${API_CONFIG.RENDER_URL}/api/health`, {
+            method: 'GET',
+            signal: controller.signal,
+            headers: { 'Accept': 'application/json' }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+            console.log('✅ Render API is available');
+            return API_CONFIG.RENDER_URL;
+        }
+    } catch (error) {
+        console.log('⚠️ Render API not available:', error.message);
+    }
+    
+    // Fallback to localhost
+    console.log('🔄 Using localhost as fallback');
+    return API_CONFIG.LOCAL_URL;
+}
 
 // ตัวแปรสำหรับเก็บข้อมูลผู้ใช้
 let currentUser = null;
 let originalData = {};
-
-// API Base URL (เปลี่ยนตามการตั้งค่าของคุณ)
-const API_BASE_URL = 'http://localhost:3000';
+let API_BASE_URL = null; // Will be determined dynamically
 
 // เมื่อหน้าเว็บโหลดเสร็จ
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     console.log('🚀 หน้าแก้ไขข้อมูลส่วนตัวโหลดเสร็จแล้ว');
+    
+    // Determine API base URL
+    API_BASE_URL = await getApiBaseUrl();
+    console.log('📡 Using API:', API_BASE_URL);
     
     // ตรวจสอบการล็อกอิน
     checkUserLogin();
@@ -269,12 +306,36 @@ function loadUserData() {
         showLoading(false);
     }
 }
+
+/**
+ * Make API request with timeout
+ */
+async function makeApiRequest(endpoint, options = {}) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
+
+    try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            ...options,
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        return response;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+            throw new Error('Request timeout - Render API might be sleeping');
+        }
+        throw error;
+    }
+}
+
 async function fetchUserDataFromAPI() {
     try {
-        const url = `${API_BASE_URL}/api/users/${currentUser.user_id}`;
-        console.log('📡 Fetching user data from API:', url);
+        const url = `/api/users/${currentUser.user_id}`;
+        console.log('📡 Fetching user data from API:', API_BASE_URL + url);
         
-        const response = await fetch(url, {
+        const response = await makeApiRequest(url, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -313,7 +374,8 @@ async function fetchUserDataFromAPI() {
                     emergency_contact_relation: patientInfo.emergency_contact_relation,
                     
                     // ข้อมูลอื่นๆ
-                    token: currentUser.token
+                    token: currentUser.token,
+                    apiSource: API_BASE_URL.includes('render.com') ? 'render' : 'localhost'
                 };
                 
                 console.log('📝 Processed form data:', formData);
@@ -327,7 +389,8 @@ async function fetchUserDataFromAPI() {
                 // ใส่ข้อมูลในฟอร์ม
                 setTimeout(() => {
                     populateForm(formData);
-                    console.log('✅ โหลดข้อมูลผู้ใช้สำเร็จจาก API');
+                    const source = formData.apiSource === 'render' ? 'Render' : 'localhost';
+                    console.log(`✅ โหลดข้อมูลผู้ใช้สำเร็จจาก ${source} API`);
                 }, 200);
                 
             } else {
@@ -371,6 +434,7 @@ function extractLastName(fullName) {
     const parts = fullName.trim().split(' ');
     return parts.slice(1).join(' ') || '';
 }
+
 // ฟังก์ชันใส่ข้อมูลลงในฟอร์ม
 function populateForm(data) {
     console.log('📝 Populating form with data:', data);
@@ -538,11 +602,11 @@ async function handleFormSubmit(event) {
     try {
         showLoading(true);
         
-        const url = `${API_BASE_URL}/api/users/${currentUser.user_id}`;
-        console.log('API URL:', url);
+        const url = `/api/users/${currentUser.user_id}`;
+        console.log('API URL:', API_BASE_URL + url);
         console.log('Token:', currentUser.token);
         
-        const response = await fetch(url, {
+        const response = await makeApiRequest(url, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -556,7 +620,8 @@ async function handleFormSubmit(event) {
         console.log('Response data:', result);
         
         if (response.ok && result.success) {
-            showToast('บันทึกข้อมูลเรียบร้อยแล้ว', 'success');
+            const source = API_BASE_URL.includes('render.com') ? 'Render' : 'localhost';
+            showToast(`บันทึกข้อมูลเรียบร้อยแล้ว (${source})`, 'success');
             updateLocalUserData(formData);
         } else {
             showToast(result.message || 'ไม่สามารถบันทึกข้อมูลได้', 'error');
@@ -867,7 +932,8 @@ function showLoading(show) {
     if (saveButton) {
         saveButton.disabled = show;
         if (show) {
-            saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>กำลังบันทึก...</span>';
+            const source = API_BASE_URL && API_BASE_URL.includes('render.com') ? ' (Render)' : '';
+            saveButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i><span>กำลังบันทึก${source}...</span>`;
         } else {
             saveButton.innerHTML = '<i class="fas fa-save"></i><span>บันทึกข้อมูล</span>';
         }
@@ -962,6 +1028,7 @@ function logout() {
         sessionStorage.removeItem('userData');
         localStorage.removeItem('user');
         localStorage.removeItem('token');
+        localStorage.removeItem('authToken');
         
         // เปลี่ยนเส้นทางไปหน้าล็อกอิน
         window.location.href = 'login.html';
@@ -972,6 +1039,7 @@ function logout() {
 function debugUserData() {
     console.log('🔍 Debug User Data:');
     console.log('currentUser:', currentUser);
+    console.log('API_BASE_URL:', API_BASE_URL);
     
     if (currentUser) {
         console.log('User properties:');

@@ -1,12 +1,52 @@
-// report.js - อัปเดตการโหลดข้อมูล (แก้ไขปัญหา Authentication)
+// report.js - อัปเดตการโหลดข้อมูล (Updated for Render API)
+
+// API Configuration for Render
+const API_CONFIG = {
+    RENDER_URL: 'https://bn1-1.onrender.com',
+    LOCAL_URL: 'http://localhost:3000',
+    TIMEOUT: 15000 // 15 seconds timeout
+};
+
+// Test and determine which API to use
+async function getApiBaseUrl() {
+    try {
+        console.log('🌐 Testing Render API connection...');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        const response = await fetch(`${API_CONFIG.RENDER_URL}/api/health`, {
+            method: 'GET',
+            signal: controller.signal,
+            headers: { 'Accept': 'application/json' }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+            console.log('✅ Render API is available');
+            return API_CONFIG.RENDER_URL;
+        }
+    } catch (error) {
+        console.log('⚠️ Render API not available:', error.message);
+    }
+    
+    // Fallback to localhost
+    console.log('🔄 Using localhost as fallback');
+    return API_CONFIG.LOCAL_URL;
+}
 
 // ตัวแปรสำหรับเก็บข้อมูล
 let exerciseHistory = [];
 let currentPage = 1;
 let itemsPerPage = 10;
+let API_BASE_URL = null; // Will be determined dynamically
 
 // เริ่มต้นหน้า
 window.addEventListener('load', async function() {
+    // Determine API base URL
+    API_BASE_URL = await getApiBaseUrl();
+    console.log('📡 Using API:', API_BASE_URL);
+    
     // ตรวจสอบและสร้าง Authentication
     const auth = ensureAuthentication();
     
@@ -59,6 +99,29 @@ async function loadExerciseData() {
     }
 }
 
+/**
+ * Make API request with timeout
+ */
+async function makeApiRequest(endpoint, options = {}) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
+
+    try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            ...options,
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        return response;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+            throw new Error('Request timeout - Render API might be sleeping');
+        }
+        throw error;
+    }
+}
+
 // แก้ไขใน report.js - ฟังก์ชัน loadFromDatabase
 async function loadFromDatabase() {
     console.log('🌐 กำลังโหลดข้อมูลจากฐานข้อมูล...');
@@ -67,7 +130,7 @@ async function loadFromDatabase() {
     let token = localStorage.getItem('authToken');
     
     // หาก token ไม่ใช่ JWT หรือไม่มี ให้ข้ามไปใช้ localStorage
-    if (!token || token.startsWith('jwt_mock_token_') || token.startsWith('mock_token_')) {
+    if (!token || token.startsWith('jwt_mock_token_') || token.startsWith('mock_token_') || token.startsWith('fallback_token_')) {
         console.log('⚠️ ไม่พบ JWT token ที่ถูกต้อง - ข้ามการเชื่อมต่อฐานข้อมูล');
         throw new Error('No valid JWT token found');
     }
@@ -76,7 +139,7 @@ async function loadFromDatabase() {
     
     try {
         // โหลดประวัติการออกกำลังกาย
-        const response = await fetch('http://127.0.0.1:3000/api/exercise-sessions', {
+        const response = await makeApiRequest('/api/exercise-sessions', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -134,10 +197,12 @@ function processApiData(result) {
             hour: '2-digit', 
             minute: '2-digit'
         }),
-        completedAt: session.session_date
+        completedAt: session.session_date,
+        source: API_BASE_URL.includes('render.com') ? 'render' : 'localhost'
     }));
     
-    console.log('✅ โหลดจากฐานข้อมูลสำเร็จ:', exerciseHistory.length, 'รายการ');
+    const source = API_BASE_URL.includes('render.com') ? 'Render' : 'localhost';
+    console.log(`✅ โหลดจาก ${source} API สำเร็จ:`, exerciseHistory.length, 'รายการ');
     
     // อัปเดต UI
     updateTable();
@@ -154,12 +219,12 @@ function processApiData(result) {
 // ฟังก์ชันโหลดสถิติจากฐานข้อมูล
 async function loadExerciseStats() {
     const token = localStorage.getItem('authToken');
-    if (!token || token.startsWith('jwt_mock_token_') || token.startsWith('mock_token_')) {
+    if (!token || token.startsWith('jwt_mock_token_') || token.startsWith('mock_token_') || token.startsWith('fallback_token_')) {
         return; // ข้าม หาก token ไม่ถูกต้อง
     }
     
     try {
-        const response = await fetch('http://127.0.0.1:3000/api/exercise-stats', {
+        const response = await makeApiRequest('/api/exercise-stats', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -178,7 +243,6 @@ async function loadExerciseStats() {
         console.error('ไม่สามารถโหลดสถิติได้:', error);
     }
 }
-
 // ฟังก์ชันอัปเดต UI ด้วยสถิติจากฐานข้อมูล
 function updateStatsFromDatabase(stats) {
     if (!stats.total_stats) return;
@@ -205,7 +269,8 @@ function updateStatsFromDatabase(stats) {
     // อัปเดตข้อความสถิติ
     const chartSubtitle = document.getElementById('chartSubtitle');
     if (chartSubtitle && totalStats.total_sessions) {
-        chartSubtitle.textContent = `ทำไปแล้ว ${totalStats.total_sessions} ครั้ง - ความแม่นยำเฉลี่ย ${Math.round(totalStats.avg_accuracy)}%`;
+        const source = API_BASE_URL && API_BASE_URL.includes('render.com') ? 'Render' : 'localhost';
+        chartSubtitle.textContent = `ทำไปแล้ว ${totalStats.total_sessions} ครั้ง - ความแม่นยำเฉลี่ย ${Math.round(totalStats.avg_accuracy)}% (${source})`;
     }
 }
 
@@ -218,6 +283,12 @@ function loadFromLocalStorage() {
         try {
             exerciseHistory = JSON.parse(history);
             console.log('Exercise history loaded from localStorage:', exerciseHistory.length, 'sessions');
+            
+            // เพิ่ม source เป็น localStorage
+            exerciseHistory = exerciseHistory.map(session => ({
+                ...session,
+                source: 'localStorage'
+            }));
             
             // เรียงลำดับตามวันที่ใหม่ไปเก่า
             exerciseHistory.sort((a, b) => {
@@ -313,7 +384,8 @@ function createSampleData() {
                 improvementRate: 5.2
             },
             date: '05/09/2568',
-            time: '09:30'
+            time: '09:30',
+            source: 'sample'
         },
         {
             exercise: 'leg-forward',
@@ -326,7 +398,8 @@ function createSampleData() {
                 improvementRate: 3.1
             },
             date: '06/09/2568',
-            time: '14:15'
+            time: '14:15',
+            source: 'sample'
         },
         {
             exercise: 'trunk-sway',
@@ -339,7 +412,8 @@ function createSampleData() {
                 improvementRate: 2.8
             },
             date: '07/09/2568',
-            time: '10:45'
+            time: '10:45',
+            source: 'sample'
         },
         {
             exercise: 'neck-tilt',
@@ -352,7 +426,8 @@ function createSampleData() {
                 improvementRate: 7.3
             },
             date: '08/09/2568',
-            time: '16:20'
+            time: '16:20',
+            source: 'sample'
         }
     ];
     
@@ -407,8 +482,11 @@ function updateTable() {
         const session = exerciseHistory[i];
         const row = tbody.insertRow();
         
+        // เพิ่มไอคอนแสดงแหล่งข้อมูล
+        const sourceIcon = getSourceIcon(session.source);
+        
         row.innerHTML = `
-            <td>${session.date}<br><small style="color: #718096;">${session.time}</small></td>
+            <td>${session.date}<br><small style="color: #718096;">${session.time} ${sourceIcon}</small></td>
             <td><strong>${session.exerciseName}</strong></td>
             <td><span style="font-weight: 600;">${session.reps} ครั้ง</span></td>
             <td>
@@ -424,6 +502,22 @@ function updateTable() {
     updateTableInfo();
     updatePagination();
     addRefreshButton(); // เพิ่มปุ่มรีเฟรช
+}
+
+// ฟังก์ชันแสดงไอคอนแหล่งข้อมูล
+function getSourceIcon(source) {
+    switch(source) {
+        case 'render':
+            return '<i class="fas fa-cloud" title="Render API" style="color: #4CAF50;"></i>';
+        case 'localhost':
+            return '<i class="fas fa-server" title="Local API" style="color: #2196F3;"></i>';
+        case 'localStorage':
+            return '<i class="fas fa-save" title="Local Storage" style="color: #FF9800;"></i>';
+        case 'sample':
+            return '<i class="fas fa-flask" title="Sample Data" style="color: #9C27B0;"></i>';
+        default:
+            return '';
+    }
 }
 
 // ฟังก์ชันช่วยเหลือ
@@ -589,8 +683,10 @@ function displayFilteredResults(filteredData) {
 
     filteredData.forEach(session => {
         const row = tbody.insertRow();
+        const sourceIcon = getSourceIcon(session.source);
+        
         row.innerHTML = `
-            <td>${session.date}<br><small style="color: #718096;">${session.time}</small></td>
+            <td>${session.date}<br><small style="color: #718096;">${session.time} ${sourceIcon}</small></td>
             <td><strong>${session.exerciseName}</strong></td>
             <td><span style="font-weight: 600;">${session.reps} ครั้ง</span></td>
             <td>
@@ -769,7 +865,7 @@ function drawEmptyChart(ctx, canvas) {
 function goBack() {
     showLoading('กำลังกลับไปหน้าหลัก...');
     setTimeout(() => {
-        window.location.href = 'index2.html';
+        window.location.href = 'patient-dashboard.html';
     }, 1000);
 }
 
@@ -777,6 +873,7 @@ function exitSystem() {
     if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
         showLoading('กำลังออกจากระบบ...');
         sessionStorage.removeItem('userData');
+        localStorage.removeItem('authToken');
         setTimeout(() => {
             window.location.href = 'login.html';
         }, 1000);
@@ -829,6 +926,7 @@ function testData() {
     console.log('Current exercise history:', exerciseHistory);
     console.log('localStorage exerciseHistory:', localStorage.getItem('exerciseHistory'));
     console.log('localStorage lastSessionData:', localStorage.getItem('lastSessionData'));
+    console.log('API Base URL:', API_BASE_URL);
 }
 
 // เพิ่ม event listener สำหรับ keyboard shortcuts
@@ -846,13 +944,13 @@ document.addEventListener('keydown', function(event) {
 // ฟังก์ชันตรวจสอบสถานะการเชื่อมต่อ
 async function checkDatabaseConnection() {
     const token = localStorage.getItem('authToken');
-    if (!token || token.startsWith('jwt_mock_token_') || token.startsWith('mock_token_')) {
+    if (!token || token.startsWith('jwt_mock_token_') || token.startsWith('mock_token_') || token.startsWith('fallback_token_')) {
         console.warn('⚠️ ไม่พบ JWT token ที่ถูกต้อง - ใช้โหมดออฟไลน์');
         return false;
     }
     
     try {
-        const response = await fetch('http://127.0.0.1:3000/test-db', {
+        const response = await makeApiRequest('/test-db', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -863,7 +961,8 @@ async function checkDatabaseConnection() {
         const result = await response.json();
         const isConnected = response.ok && result.success;
         
-        console.log(isConnected ? '✅ เชื่อมต่อฐานข้อมูลได้' : '❌ เชื่อมต่อฐานข้อมูลไม่ได้');
+        const source = API_BASE_URL && API_BASE_URL.includes('render.com') ? 'Render' : 'localhost';
+        console.log(isConnected ? `✅ เชื่อมต่อ ${source} ฐานข้อมูลได้` : `❌ เชื่อมต่อ ${source} ฐานข้อมูลไม่ได้`);
         
         if (!isConnected) {
             console.log('Database response:', result);
@@ -884,7 +983,7 @@ function ensureAuthentication() {
     console.log('🔍 Checking authentication:', { hasToken: !!token, hasUserData: !!userData });
     
     // หาก token ไม่มีหรือเป็น mock token ให้แจ้งเตือน
-    if (!token || token.startsWith('jwt_mock_token_') || token.startsWith('mock_token_')) {
+    if (!token || token.startsWith('jwt_mock_token_') || token.startsWith('mock_token_') || token.startsWith('fallback_token_')) {
         console.log('⚠️ ไม่พบ JWT token ที่ถูกต้อง - ใช้โหมดออฟไลน์');
         // ไม่สร้าง mock token ใหม่
         token = null;
@@ -935,13 +1034,13 @@ window.debugReport = {
     },
     testAPI: async () => {
         const token = localStorage.getItem('authToken');
-        if (!token || token.startsWith('mock_token_')) {
+        if (!token || token.startsWith('mock_token_') || token.startsWith('fallback_token_')) {
             console.log('❌ ไม่มี JWT token ที่ถูกต้อง');
             return;
         }
         
         try {
-            const response = await fetch('http://127.0.0.1:3000/api/exercise-sessions', {
+            const response = await makeApiRequest('/api/exercise-sessions', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -952,5 +1051,9 @@ window.debugReport = {
         } catch (error) {
             console.error('API Test Error:', error);
         }
+    },
+    getApiUrl: () => {
+        console.log('Current API URL:', API_BASE_URL);
+        return API_BASE_URL;
     }
 };
