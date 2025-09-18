@@ -1,19 +1,55 @@
 /**
  * ========================================
  * Login System - ระบบเข้าสู่ระบบ
- * login.js - JavaScript สำหรับหน้าล็อกอิน
+ * login.js - JavaScript สำหรับหน้าล็อกอิน (Updated for Render)
  * ========================================
  */
+
+// API Configuration for Render
+const API_CONFIG = {
+    RENDER_URL: 'https://bn1-1.onrender.com',
+    LOCAL_URL: 'http://localhost:3000',
+    TIMEOUT: 10000 // 10 seconds timeout for online requests
+};
+
+// Test and determine which API to use
+async function getApiBaseUrl() {
+    try {
+        console.log('🌐 Testing Render API connection...');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        const response = await fetch(`${API_CONFIG.RENDER_URL}/api/health`, {
+            method: 'GET',
+            signal: controller.signal,
+            headers: { 'Accept': 'application/json' }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+            console.log('✅ Render API is available');
+            return `${API_CONFIG.RENDER_URL}/api/auth`;
+        }
+    } catch (error) {
+        console.log('⚠️ Render API not available:', error.message);
+    }
+    
+    // Fallback to localhost
+    console.log('🔄 Using localhost as fallback');
+    return `${API_CONFIG.LOCAL_URL}/api/auth`;
+}
 
 class LoginSystem {
     constructor() {
         // Configuration
         this.config = {
-            apiBaseUrl: 'http://localhost:3000/api/auth',
+            apiBaseUrl: null, // Will be determined dynamically
             isLoading: false,
             maxLoginAttempts: 5,
             lockoutDuration: 15 * 60 * 1000, // 15 minutes
-            validationRules: this.getValidationRules()
+            validationRules: this.getValidationRules(),
+            connectionCheckTimeout: API_CONFIG.TIMEOUT
         };
 
         // Initialize
@@ -23,10 +59,18 @@ class LoginSystem {
     /**
      * Initialize the login system
      */
-    init() {
+    async init() {
+        // Determine API base URL
+        this.config.apiBaseUrl = await getApiBaseUrl();
+        console.log('📡 Using API:', this.config.apiBaseUrl);
+        
         this.bindEvents();
         this.checkExistingSession();
-        this.checkConnection();
+        
+        // Check connection with proper error handling
+        this.checkConnection().catch(err => {
+            console.log('⚠️ Initial connection check failed:', err.message);
+        });
         
         console.log('✅ Login System initialized');
     }
@@ -181,9 +225,9 @@ class LoginSystem {
         this.setLoadingState(true);
 
         try {
-            console.log('🔄 Attempting login...', { username });
+            console.log('🔄 Attempting login...', { username, api: this.config.apiBaseUrl });
 
-            const response = await fetch(`${this.config.apiBaseUrl}/login`, {
+            const response = await this.makeApiRequest('/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -207,14 +251,37 @@ class LoginSystem {
             }
 
         } catch (error) {
-            console.error('❌ Network Error:', error);
+            console.log('⚠️ API Error:', error.message);
             
             // Fallback to localStorage
-            console.log('⚠️ API unavailable, trying localStorage...');
+            console.log('🔄 API unavailable, trying localStorage...');
             this.fallbackLogin(username, password, remember);
             
         } finally {
             this.setLoadingState(false);
+        }
+    }
+
+    /**
+     * Make API request with timeout
+     */
+    async makeApiRequest(endpoint, options = {}) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.config.connectionCheckTimeout);
+
+        try {
+            const response = await fetch(`${this.config.apiBaseUrl}${endpoint}`, {
+                ...options,
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            return response;
+        } catch (error) {
+            clearTimeout(timeoutId);
+            if (error.name === 'AbortError') {
+                throw new Error('Request timeout');
+            }
+            throw error;
         }
     }
 
@@ -338,6 +405,7 @@ class LoginSystem {
                     token: 'fallback_token_' + Date.now()
                 };
                 
+                console.log('✅ Fallback login successful');
                 this.loginSuccess(apiResponse, remember);
                 this.clearFailedAttempts();
             } else {
@@ -359,7 +427,8 @@ class LoginSystem {
             full_name: result.user.full_name,
             role: result.user.role,
             token: result.token,
-            loginTime: new Date().toISOString()
+            loginTime: new Date().toISOString(),
+            apiSource: this.config.apiBaseUrl.includes('render.com') ? 'render' : 'localhost'
         };
 
         // Store user data
@@ -367,6 +436,11 @@ class LoginSystem {
             localStorage.setItem('userData', JSON.stringify(userData));
         } else {
             sessionStorage.setItem('userData', JSON.stringify(userData));
+        }
+
+        // Store auth token separately for API calls
+        if (result.token) {
+            localStorage.setItem('authToken', result.token);
         }
 
         // Record login history
@@ -404,7 +478,7 @@ class LoginSystem {
      * Redirect to appropriate dashboard
      */
     redirectToDashboard(userData) {
-        let redirectUrl = 'index2.html'; // default
+        let redirectUrl = 'patient-dashboard.html'; // default
 
         switch (userData.role) {
             case 'Patient':
@@ -437,6 +511,7 @@ class LoginSystem {
                 phone: userData.phone,
                 loginTime: userData.loginTime,
                 userAgent: navigator.userAgent,
+                apiSource: userData.apiSource,
                 success: true
             });
 
@@ -551,28 +626,34 @@ class LoginSystem {
     }
 
     /**
-     * Check server connection
+     * Check server connection with improved error handling
      */
     async checkConnection() {
         const statusElement = document.getElementById('connectionStatus');
         const statusText = statusElement?.querySelector('.status-text');
+        const statusIcon = statusElement?.querySelector('.status-icon i');
 
         if (!statusElement) return;
 
         try {
             statusText.textContent = 'กำลังตรวจสอบ...';
-            statusElement.className = 'connection-status';
+            statusElement.className = 'connection-status checking';
+            if (statusIcon) statusIcon.className = 'fas fa-spinner fa-spin';
 
-            const healthUrl = this.config.apiBaseUrl.replace('/api/auth', '/health');
-            const response = await fetch(healthUrl, {
+            // Try Render API first
+            let healthUrl = this.config.apiBaseUrl.replace('/api/auth', '/api/health');
+            
+            const response = await this.makeApiRequest('/health', {
                 method: 'GET',
-                headers: { 'Accept': 'application/json' },
-                timeout: 5000
+                headers: { 'Accept': 'application/json' }
             });
 
             if (response.ok) {
-                statusText.textContent = 'เชื่อมต่อแล้ว';
+                const isRender = this.config.apiBaseUrl.includes('render.com');
+                statusText.textContent = isRender ? 'เชื่อมต่อ Render แล้ว' : 'เชื่อมต่อ localhost แล้ว';
+                statusElement.classList.remove('checking');
                 statusElement.classList.add('connected');
+                if (statusIcon) statusIcon.className = 'fas fa-check-circle';
                 
                 // Hide status after 3 seconds
                 setTimeout(() => {
@@ -583,9 +664,17 @@ class LoginSystem {
             }
 
         } catch (error) {
-            console.error('Connection check failed:', error);
-            statusText.textContent = 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์';
+            console.log('⚠️ Connection check failed:', error.message);
+            
+            statusText.textContent = 'ทำงานแบบออฟไลน์';
+            statusElement.classList.remove('checking');
             statusElement.classList.add('disconnected');
+            if (statusIcon) statusIcon.className = 'fas fa-exclamation-triangle';
+            
+            // Auto-hide disconnected status after 5 seconds
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 5000);
         }
     }
 
@@ -661,6 +750,7 @@ class LoginSystem {
     static logout() {
         sessionStorage.removeItem('userData');
         localStorage.removeItem('userData');
+        localStorage.removeItem('authToken');
         window.location.href = 'login.html';
     }
 }

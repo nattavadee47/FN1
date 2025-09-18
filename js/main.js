@@ -2,15 +2,6 @@
 // ระบบกายภาพบำบัดสำหรับผู้ป่วย Stroke - ไฟล์หลัก (แก้ไขแล้ว)
 // main.js
 // ========================================
-// ตัวอย่าง fetch API
-const API_URL = 'https://bn1-1.onrender.com/api';
-
-fetch(`${API_URL}/getData`)
-  .then(res => res.json())
-  .then(data => console.log('Data from BN:', data))
-  .catch(err => console.error('Error calling BN API:', err));
-
-
 class StrokeTherapySystem {
     constructor() {
         this.poseDetection = null;
