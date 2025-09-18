@@ -17,7 +17,7 @@ async function getApiBaseUrl() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
         
-        const response = await fetch(`${API_CONFIG.RENDER_URL}/api/health`, {
+        const response = await fetch(`${API_CONFIG.RENDER_URL}/health`, {
             method: 'GET',
             signal: controller.signal,
             headers: { 'Accept': 'application/json' }

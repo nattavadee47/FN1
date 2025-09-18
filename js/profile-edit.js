@@ -10,14 +10,15 @@ const API_CONFIG = {
     TIMEOUT: 15000 // 15 seconds timeout
 };
 
-// Test and determine which API to use
+// Test and determine which API to use - แก้ไขส่วนนี้
 async function getApiBaseUrl() {
     try {
         console.log('🌐 Testing Render API connection...');
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
         
-        const response = await fetch(`${API_CONFIG.RENDER_URL}/api/health`, {
+        // แก้ไข: ใช้ /health แทน /api/health
+        const response = await fetch(`${API_CONFIG.RENDER_URL}/health`, {
             method: 'GET',
             signal: controller.signal,
             headers: { 'Accept': 'application/json' }
