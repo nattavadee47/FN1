@@ -1,5 +1,44 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/login.html" }
-  ]
+    {
+      "source": "/",
+      "destination": "/login.html"
+    },
+    {
+      "source": "/index.html",
+      "destination": "/login.html"
+    },
+    {
+      "source": "/(.*\\.html)",
+      "destination": "/$1"
+    },
+    {
+      "source": "/js/(.*)",
+      "destination": "/js/$1"
+    },
+    {
+      "source": "/style/(.*)",
+      "destination": "/style/$1"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cross-Origin-Embedder-Policy",
+          "value": "credentialless"
+        },
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin"
+        }
+      ]
+    }
+  ],
+  "functions": {
+    "js/*.js": {
+      "maxDuration": 30
+    }
+  }
 }
