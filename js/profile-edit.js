@@ -6,7 +6,7 @@
 // API Configuration for Render
 const API_CONFIG = {
     RENDER_URL: 'https://bn1-1.onrender.com',
-    LOCAL_URL: 'http://localhost:3000',
+    LOCAL_URL: 'http://localhost:4000',
     TIMEOUT: 15000 // 15 seconds timeout
 };
 

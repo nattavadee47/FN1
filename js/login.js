@@ -1,15 +1,15 @@
 /**
  * ========================================
  * Login System - ระบบเข้าสู่ระบบ
- * login.js - JavaScript สำหรับหน้าล็อกอิน (Updated for Render)
+ * login.js - JavaScript สำหรับหน้าล็อกอิน (Fixed for Render - Complete)
  * ========================================
  */
 
-// API Configuration for Render
+// API Configuration for Render - แก้ไขให้ใช้ endpoint ที่ถูกต้อง
 const API_CONFIG = {
     RENDER_URL: 'https://bn1-1.onrender.com',
-    LOCAL_URL: 'http://localhost:3000',
-    TIMEOUT: 10000 // 10 seconds timeout for online requests
+    LOCAL_URL: 'http://localhost:4000', // แก้ไข port เป็น 4000
+    TIMEOUT: 10000
 };
 
 // Test and determine which API to use
@@ -19,7 +19,8 @@ async function getApiBaseUrl() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
         
-        const response = await fetch(`${API_CONFIG.RENDER_URL}/api/health`, {
+        // ใช้ /health ตรงๆ ไม่ใช่ /api/health
+        const response = await fetch(`${API_CONFIG.RENDER_URL}/health`, {
             method: 'GET',
             signal: controller.signal,
             headers: { 'Accept': 'application/json' }
@@ -35,7 +36,7 @@ async function getApiBaseUrl() {
         console.log('⚠️ Render API not available:', error.message);
     }
     
-    // Fallback to localhost
+    // Fallback to localhost with correct port
     console.log('🔄 Using localhost as fallback');
     return `${API_CONFIG.LOCAL_URL}/api/auth`;
 }
@@ -44,21 +45,17 @@ class LoginSystem {
     constructor() {
         // Configuration
         this.config = {
-            apiBaseUrl: null, // Will be determined dynamically
+            apiBaseUrl: null,
             isLoading: false,
             maxLoginAttempts: 5,
-            lockoutDuration: 15 * 60 * 1000, // 15 minutes
+            lockoutDuration: 15 * 60 * 1000,
             validationRules: this.getValidationRules(),
             connectionCheckTimeout: API_CONFIG.TIMEOUT
         };
 
-        // Initialize
         this.init();
     }
 
-    /**
-     * Initialize the login system
-     */
     async init() {
         // Determine API base URL
         this.config.apiBaseUrl = await getApiBaseUrl();
@@ -75,9 +72,6 @@ class LoginSystem {
         console.log('✅ Login System initialized');
     }
 
-    /**
-     * Get validation rules
-     */
     getValidationRules() {
         return {
             username: {
@@ -93,32 +87,24 @@ class LoginSystem {
         };
     }
 
-    /**
-     * Bind event listeners
-     */
     bindEvents() {
-        // Form submission
         const loginForm = document.getElementById('loginForm');
         if (loginForm) {
             loginForm.addEventListener('submit', this.handleLogin.bind(this));
         }
 
-        // Password toggle
         const passwordToggle = document.getElementById('passwordToggle');
         if (passwordToggle) {
             passwordToggle.addEventListener('click', this.togglePassword.bind(this));
         }
 
-        // Register button
         const registerBtn = document.getElementById('registerBtn');
         if (registerBtn) {
             registerBtn.addEventListener('click', this.redirectToRegister.bind(this));
         }
 
-        // Real-time validation
         this.bindValidationEvents();
 
-        // Enter key support
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !this.config.isLoading) {
                 const submitBtn = document.getElementById('submitBtn');
@@ -128,7 +114,6 @@ class LoginSystem {
             }
         });
 
-        // Escape key to close modals
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 this.closeModals();
@@ -136,9 +121,6 @@ class LoginSystem {
         });
     }
 
-    /**
-     * Bind validation events
-     */
     bindValidationEvents() {
         const inputs = ['username', 'password'];
         
@@ -151,9 +133,6 @@ class LoginSystem {
         });
     }
 
-    /**
-     * Check for existing session
-     */
     checkExistingSession() {
         const userData = this.getStoredUserData();
         if (userData && this.isValidSession(userData)) {
@@ -162,9 +141,6 @@ class LoginSystem {
         }
     }
 
-    /**
-     * Get stored user data
-     */
     getStoredUserData() {
         try {
             const sessionData = sessionStorage.getItem('userData');
@@ -182,9 +158,6 @@ class LoginSystem {
         return null;
     }
 
-    /**
-     * Check if session is valid
-     */
     isValidSession(userData) {
         if (!userData || !userData.loginTime) {
             return false;
@@ -198,15 +171,11 @@ class LoginSystem {
         return timeDiff < maxAge;
     }
 
-    /**
-     * Handle login form submission
-     */
     async handleLogin(event) {
         event.preventDefault();
         
         if (this.config.isLoading) return;
 
-        // Check lockout
         if (this.isLockedOut()) {
             const timeLeft = this.getLockoutTimeLeft();
             this.showErrorModal(`บัญชีถูกล็อค กรุณารอ ${Math.ceil(timeLeft / 60000)} นาที`);
@@ -217,7 +186,6 @@ class LoginSystem {
         const password = document.getElementById('password')?.value;
         const remember = document.getElementById('remember')?.checked;
 
-        // Validate input
         if (!this.validateLoginForm(username, password)) {
             return;
         }
@@ -253,7 +221,6 @@ class LoginSystem {
         } catch (error) {
             console.log('⚠️ API Error:', error.message);
             
-            // Fallback to localStorage
             console.log('🔄 API unavailable, trying localStorage...');
             this.fallbackLogin(username, password, remember);
             
@@ -262,9 +229,6 @@ class LoginSystem {
         }
     }
 
-    /**
-     * Make API request with timeout
-     */
     async makeApiRequest(endpoint, options = {}) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), this.config.connectionCheckTimeout);
@@ -285,9 +249,6 @@ class LoginSystem {
         }
     }
 
-    /**
-     * Validate login form
-     */
     validateLoginForm(username, password) {
         if (!username || !password) {
             this.showErrorModal('กรุณากรอกเบอร์โทรศัพท์และรหัสผ่าน');
@@ -301,9 +262,6 @@ class LoginSystem {
         return true;
     }
 
-    /**
-     * Validate a single field
-     */
     validateField(fieldId) {
         const field = document.getElementById(fieldId);
         if (!field) return false;
@@ -313,35 +271,27 @@ class LoginSystem {
 
         if (!rule) return true;
 
-        // Clear previous state
         this.clearFieldError(fieldId);
 
-        // Required validation
         if (rule.required && !value) {
             this.showFieldError(fieldId, rule.message);
             return false;
         }
 
-        // Pattern validation
         if (value && rule.pattern && !rule.pattern.test(value)) {
             this.showFieldError(fieldId, rule.message);
             return false;
         }
 
-        // Min length validation
         if (value && rule.minLength && value.length < rule.minLength) {
             this.showFieldError(fieldId, rule.message);
             return false;
         }
 
-        // Show success state
         this.showFieldSuccess(fieldId);
         return true;
     }
 
-    /**
-     * Show field error
-     */
     showFieldError(fieldId, message) {
         const formGroup = document.getElementById(fieldId)?.closest('.form-group');
         if (!formGroup) return;
@@ -355,9 +305,6 @@ class LoginSystem {
         }
     }
 
-    /**
-     * Show field success
-     */
     showFieldSuccess(fieldId) {
         const formGroup = document.getElementById(fieldId)?.closest('.form-group');
         if (!formGroup) return;
@@ -366,9 +313,6 @@ class LoginSystem {
         formGroup.classList.add('success');
     }
 
-    /**
-     * Clear field error
-     */
     clearFieldError(fieldId) {
         const formGroup = document.getElementById(fieldId)?.closest('.form-group');
         if (!formGroup) return;
@@ -381,9 +325,6 @@ class LoginSystem {
         }
     }
 
-    /**
-     * Fallback login using localStorage
-     */
     fallbackLogin(username, password, remember) {
         try {
             const users = JSON.parse(localStorage.getItem('registrationBackup') || '[]');
@@ -393,7 +334,6 @@ class LoginSystem {
             );
 
             if (user) {
-                // Convert to API format
                 const apiResponse = {
                     success: true,
                     user: {
@@ -417,9 +357,6 @@ class LoginSystem {
         }
     }
 
-    /**
-     * Handle successful login
-     */
     loginSuccess(result, remember) {
         const userData = {
             user_id: result.user.user_id,
@@ -431,33 +368,24 @@ class LoginSystem {
             apiSource: this.config.apiBaseUrl.includes('render.com') ? 'render' : 'localhost'
         };
 
-        // Store user data
         if (remember) {
             localStorage.setItem('userData', JSON.stringify(userData));
         } else {
             sessionStorage.setItem('userData', JSON.stringify(userData));
         }
 
-        // Store auth token separately for API calls
         if (result.token) {
             localStorage.setItem('authToken', result.token);
         }
 
-        // Record login history
         this.recordLoginHistory(userData);
-
-        // Show success modal
         this.showSuccessModal();
 
-        // Redirect after delay
         setTimeout(() => {
             this.redirectToDashboard(userData);
         }, 2000);
     }
 
-    /**
-     * Handle failed login
-     */
     loginFailed(message) {
         this.incrementFailedAttempts();
         
@@ -474,11 +402,8 @@ class LoginSystem {
         this.showErrorModal(message);
     }
 
-    /**
-     * Redirect to appropriate dashboard
-     */
     redirectToDashboard(userData) {
-        let redirectUrl = 'patient-dashboard.html'; // default
+        let redirectUrl = 'patient-dashboard.html';
 
         switch (userData.role) {
             case 'Patient':
@@ -500,9 +425,6 @@ class LoginSystem {
         window.location.href = redirectUrl;
     }
 
-    /**
-     * Record login history
-     */
     recordLoginHistory(userData) {
         try {
             const history = JSON.parse(localStorage.getItem('loginHistory') || '[]');
@@ -515,7 +437,6 @@ class LoginSystem {
                 success: true
             });
 
-            // Keep only last 50 records
             if (history.length > 50) {
                 history.splice(0, history.length - 50);
             }
@@ -526,9 +447,6 @@ class LoginSystem {
         }
     }
 
-    /**
-     * Toggle password visibility
-     */
     togglePassword() {
         const passwordInput = document.getElementById('password');
         const passwordToggle = document.getElementById('passwordToggle');
@@ -545,9 +463,6 @@ class LoginSystem {
         }
     }
 
-    /**
-     * Set loading state
-     */
     setLoadingState(loading) {
         this.config.isLoading = loading;
 
@@ -556,12 +471,10 @@ class LoginSystem {
         const btnText = submitBtn?.querySelector('.btn-text');
         const btnIcon = submitBtn?.querySelector('.btn-icon');
 
-        // Loading overlay
         if (loadingOverlay) {
             loadingOverlay.style.display = loading ? 'flex' : 'none';
         }
 
-        // Submit button
         if (submitBtn) {
             submitBtn.disabled = loading;
             submitBtn.classList.toggle('loading', loading);
@@ -575,16 +488,12 @@ class LoginSystem {
             btnIcon.className = loading ? 'btn-icon fas fa-spinner fa-spin' : 'btn-icon fas fa-arrow-right';
         }
 
-        // Disable form inputs
         const formInputs = document.querySelectorAll('#loginForm input, #loginForm button');
         formInputs.forEach(input => {
             input.disabled = loading;
         });
     }
 
-    /**
-     * Show success modal
-     */
     showSuccessModal() {
         const modal = document.getElementById('successModal');
         if (modal) {
@@ -593,9 +502,6 @@ class LoginSystem {
         }
     }
 
-    /**
-     * Show error modal
-     */
     showErrorModal(message) {
         const modal = document.getElementById('errorModal');
         const messageElement = document.getElementById('errorMessage');
@@ -607,9 +513,6 @@ class LoginSystem {
         }
     }
 
-    /**
-     * Close all modals
-     */
     closeModals() {
         const modals = document.querySelectorAll('.modal-overlay');
         modals.forEach(modal => {
@@ -618,16 +521,10 @@ class LoginSystem {
         document.body.style.overflow = '';
     }
 
-    /**
-     * Redirect to registration page
-     */
     redirectToRegister() {
         window.location.href = 'Useraccoun.html';
     }
 
-    /**
-     * Check server connection with improved error handling
-     */
     async checkConnection() {
         const statusElement = document.getElementById('connectionStatus');
         const statusText = statusElement?.querySelector('.status-text');
@@ -640,13 +537,21 @@ class LoginSystem {
             statusElement.className = 'connection-status checking';
             if (statusIcon) statusIcon.className = 'fas fa-spinner fa-spin';
 
-            // Try Render API first
-            let healthUrl = this.config.apiBaseUrl.replace('/api/auth', '/api/health');
+            // ใช้ /health โดยตรง ไม่ผ่าน makeApiRequest
+            const healthUrl = this.config.apiBaseUrl.includes('render.com') ? 
+                `${API_CONFIG.RENDER_URL}/health` : 
+                `${API_CONFIG.LOCAL_URL}/health`;
             
-            const response = await this.makeApiRequest('/health', {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            
+            const response = await fetch(healthUrl, {
                 method: 'GET',
+                signal: controller.signal,
                 headers: { 'Accept': 'application/json' }
             });
+            
+            clearTimeout(timeoutId);
 
             if (response.ok) {
                 const isRender = this.config.apiBaseUrl.includes('render.com');
@@ -655,7 +560,6 @@ class LoginSystem {
                 statusElement.classList.add('connected');
                 if (statusIcon) statusIcon.className = 'fas fa-check-circle';
                 
-                // Hide status after 3 seconds
                 setTimeout(() => {
                     statusElement.style.display = 'none';
                 }, 3000);
@@ -671,16 +575,13 @@ class LoginSystem {
             statusElement.classList.add('disconnected');
             if (statusIcon) statusIcon.className = 'fas fa-exclamation-triangle';
             
-            // Auto-hide disconnected status after 5 seconds
             setTimeout(() => {
                 statusElement.style.display = 'none';
             }, 5000);
         }
     }
 
-    /**
-     * Failed attempts management
-     */
+    // Failed attempts management
     getFailedAttempts() {
         const attempts = localStorage.getItem('loginAttempts');
         return attempts ? parseInt(attempts) : 0;
@@ -708,7 +609,6 @@ class LoginSystem {
         if (now - lockTime < this.config.lockoutDuration) {
             return true;
         } else {
-            // Lockout expired, clear it
             this.clearFailedAttempts();
             return false;
         }
@@ -727,9 +627,6 @@ class LoginSystem {
         return Math.max(0, this.config.lockoutDuration - elapsed);
     }
 
-    /**
-     * Static methods for external use
-     */
     static checkAuthStatus() {
         const sessionData = sessionStorage.getItem('userData');
         const localData = localStorage.getItem('userData');
