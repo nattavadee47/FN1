@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เลือกท่าทางการฟื้นฟู - ระบบกายภาพบำบัด</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles2.css">
+</head>
+<body>
+    <!-- ปุ่มย้อนกลับ -->
+    <button class="back-button" onclick="window.location.href='patient-dashboard.html'">
+        <i class="fas fa-arrow-left"></i>
+        ย้อนกลับ
+    </button>
+
+    <div class="container">
+        <div class="header">
+            <h1>เลือกท่าทางการฟื้นฟู</h1>
+            <p>เลือกท่าทางที่ต้องการฝึกฝนเพื่อการฟื้นฟูสมรรถภาพ</p>
+        </div>
+
+        <div class="exercise-grid">
+            <!-- ท่ายกแขนไปข้างหน้า -->
+            <div class="exercise-card" data-exercise="arm-raise-forward" onclick="selectExercise(this)">
+                <div class="exercise-icon">
+                    <i class="fas fa-hand-holding-medical"></i>
+                </div>
+                <h3>ท่ายกแขนไปข้างหน้า</h3>
+                <p>ฝึกการเคลื่อนไหวของแขนและไหล่ เหมาะสำหรับผู้ที่มีปัญหาการเคลื่อนไหวส่วนบน</p>
+                <span class="difficulty easy">ง่าย</span>
+                <div class="duration">
+                    <i class="fas fa-clock"></i>
+                    5-10 นาที
+                </div>
+            </div>
+
+            <!-- ท่าเหยียดเข่าตรง -->
+            <div class="exercise-card" data-exercise="leg-extension" onclick="selectExercise(this)">
+                <div class="exercise-icon">
+                    <i class="fas fa-accessible-icon"></i>
+                </div>
+                <h3>ท่าเหยียดเข่าตรง</h3>
+                <p>ฝึกความแข็งแรงของกล้ามเนื้อขา เพื่อการเดินและการทรงตัวที่ดีขึ้น</p>
+                <span class="difficulty medium">ปานกลาง</span>
+                <div class="duration">
+                    <i class="fas fa-clock"></i>
+                    8-15 นาที
+                </div>
+            </div>
+
+            <!-- ท่าโยกลำตัวซ้าย-ขวา -->
+            <div class="exercise-card" data-exercise="trunk-sway" onclick="selectExercise(this)">
+                <div class="exercise-icon">
+                    <i class="fas fa-arrows-alt-h"></i>
+                </div>
+                <h3>ท่าโยกลำตัวซ้าย-ขวา</h3>
+                <p>ฝึกการทรงตัวและความยืดหยุ่นของลำตัว สำคัญสำหรับการเคลื่อนไหวในชีวิตประจำวัน</p>
+                <span class="difficulty medium">ปานกลาง</span>
+                <div class="duration">
+                    <i class="fas fa-clock"></i>
+                    10-15 นาที
+                </div>
+            </div>
+
+            <!-- ท่าเอียงศีรษะซ้าย-ขวา -->
+            <div class="exercise-card" data-exercise="neck-tilt" onclick="selectExercise(this)">
+                <div class="exercise-icon">
+                    <i class="fas fa-head-side-cough"></i>
+                </div>
+                <h3>ท่าเอียงศีรษะซ้าย-ขวา</h3>
+                <p>ฝึกความยืดหยุ่นของกล้ามเนื้อคอ ลดอาการปวดคอและปรับปรุงการเคลื่อนไหว</p>
+                <span class="difficulty easy">ง่าย</span>
+                <div class="duration">
+                    <i class="fas fa-clock"></i>
+                    3-8 นาที
+                </div>
+            </div>
+
+
+        <!-- ข้อมูลท่าที่เลือก -->
+        <div class="selection-info" id="selection-info" style="display: none;">
+            <div class="selected-exercise">
+                <div class="selected-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="selected-details">
+                    <h4>ท่าที่เลือก: <span id="selected-name"></span></h4>
+                    <p id="selected-description"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ปุ่มเริ่มการฝึก -->
+        <div class="action-buttons">
+            <button class="btn btn-primary" id="start-camera-btn" onclick="startCamera()" disabled>
+                <i class="fas fa-video"></i>
+                เริ่มการฝึกฝน
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ข้อมูลท่าออกกำลังกาย
+        const exerciseData = {
+            'arm-raise-forward': {
+                name: 'ท่ายกแขนไปข้างหน้า',
+                description: 'ฝึกการเคลื่อนไหวของแขนและไหล่ เหมาะสำหรับผู้ที่มีปัญหาการเคลื่อนไหวส่วนบน',
+                difficulty: 'easy',
+                duration: '5-10 นาที'
+            },
+            'leg-extension': {
+                name: 'ท่าเหยียดเข่าตรง',
+                description: 'ฝึกความแข็งแรงของกล้ามเนื้อขา เพื่อการเดินและการทรงตัวที่ดีขึ้น',
+                difficulty: 'medium',
+                duration: '8-15 นาที'
+            },
+            'trunk-sway': {
+                name: 'ท่าโยกลำตัวซ้าย-ขวา',
+                description: 'ฝึกการทรงตัวและความยืดหยุ่นของลำตัว สำคัญสำหรับการเคลื่อนไหวในชีวิตประจำวัน',
+                difficulty: 'medium',
+                duration: '10-15 นาที'
+            },
+            'neck-tilt': {
+                name: 'ท่าเอียงศีรษะซ้าย-ขวา',
+                description: 'ฝึกความยืดหยุ่นของกล้ามเนื้อคอ ลดอาการปวดคอและปรับปรุงการเคลื่อนไหว',
+                difficulty: 'easy',
+                duration: '3-8 นาที'
+            },
+            'leg-raise': {
+                name: 'ท่ายกขาขึ้น',
+                description: 'เสริมสร้างความแข็งแรงกล้ามเนื้อสะโพกและขา เพื่อการเดินและความสมดุล',
+                difficulty: 'medium',
+                duration: '6-12 นาที'
+            },
+            'hand-grip': {
+                name: 'ท่าจับมือบีบ',
+                description: 'ฝึกความแข็งแรงของกล้ามเนื้อมือและข้อมือ สำหรับการทำกิจวัตรประจำวัน',
+                difficulty: 'easy',
+                duration: '4-8 นาที'
+            }
+        };
+
+        // ตัวแปรสำหรับเก็บท่าที่เลือก
+        let selectedExercise = null;
+        let selectedExerciseName = '';
+
+        // ฟังก์ชันเลือกท่าออกกำลังกาย
+        function selectExercise(element) {
+            // ลบการเลือกเก่า
+            document.querySelectorAll('.exercise-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // เลือกการ์ดใหม่
+            element.classList.add('selected');
+            
+            // เก็บข้อมูลท่าที่เลือก
+            selectedExercise = element.dataset.exercise;
+            const exercise = exerciseData[selectedExercise];
+            selectedExerciseName = exercise.name;
+            
+            // แสดงข้อมูลท่าที่เลือก
+            showSelectionInfo(exercise);
+            
+            // เปิดใช้งานปุ่มเริ่มการฝึก
+            const startBtn = document.getElementById('start-camera-btn');
+            startBtn.disabled = false;
+            
+            console.log(`✅ เลือกท่า: ${selectedExerciseName} (${selectedExercise})`);
+        }
+
+        // แสดงข้อมูลท่าที่เลือก
+        function showSelectionInfo(exercise) {
+            const selectionInfo = document.getElementById('selection-info');
+            const selectedName = document.getElementById('selected-name');
+            const selectedDescription = document.getElementById('selected-description');
+            
+            selectedName.textContent = exercise.name;
+            selectedDescription.textContent = exercise.description;
+            
+            selectionInfo.style.display = 'block';
+            selectionInfo.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // เริ่มการฝึกกับกล้อง
+        function startCamera() {
+            if (!selectedExercise) {
+                alert('กรุณาเลือกท่าออกกำลังกายก่อน');
+                return;
+            }
+            
+            // บันทึกข้อมูลลง localStorage
+            localStorage.setItem('selectedExercise', selectedExercise);
+            localStorage.setItem('selectedExerciseName', selectedExerciseName);
+            
+            // ไปหน้าการฝึก
+            window.location.href = 'index3.html';
+        }
+
+        // กลับหน้าก่อนหน้า
+        function goBack() {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = 'patient-dashboard.html';
+            }
+        }
+
+        // ตรวจสอบการล็อกอินเมื่อโหลดหน้า
+        document.addEventListener('DOMContentLoaded', function() {
+            // ตรวจสอบว่าผู้ใช้ล็อกอินแล้วหรือไม่
+            const userData = sessionStorage.getItem('userData') || localStorage.getItem('userData');
+            if (!userData) {
+                alert('กรุณาเข้าสู่ระบบก่อนใช้งาน');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // เพิ่มเอฟเฟกต์การแสดงผลการ์ด
+            const cards = document.querySelectorAll('.exercise-card');
+            cards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 150);
+            });
+
+            console.log('🚀 หน้าเลือกท่าทางพร้อมใช้งาน');
+        });
+
+        // จัดการการกดปุ่ม Enter หรือ Space
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                const startBtn = document.getElementById('start-camera-btn');
+                if (!startBtn.disabled && document.activeElement === startBtn) {
+                    startCamera();
+                }
+            }
+        });
+
+        // จัดการการคลิกบนการ์ดด้วยคีย์บอร์ด
+        document.querySelectorAll('.exercise-card').forEach(card => {
+            card.setAttribute('tabindex', '0');
+            card.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    selectExercise(this);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

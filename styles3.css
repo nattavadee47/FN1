@@ -1,0 +1,344 @@
+/* simple-physio-styles.css */
+/* เธชเนเธ•เธฅเนเธชเธณเธซเธฃเธฑเธเธซเธเนเธฒเธ•เธฃเธงเธเธเธฑเธเธ—เนเธฒเธ—เธฒเธเนเธเธเธเนเธฒเธข */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Kanit', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+/* Container เธซเธฅเธฑเธ */
+.main-container {
+    width: 90%;
+    max-width: 800px;
+    text-align: center;
+    position: relative;
+}
+
+/* Header */
+.header {
+    margin-bottom: 30px;
+}
+
+.exercise-title {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.rep-counter {
+    font-size: 3rem;
+    font-weight: 700;
+    margin: 20px 0;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.rep-target {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    margin-bottom: 20px;
+}
+
+/* Video Container */
+.video-container {
+    position: relative;
+    background: #000;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    margin-bottom: 30px;
+    aspect-ratio: 4/3;
+}
+
+#input-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+}
+
+#output-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    z-index: 10;
+    border-radius: 20px;
+}
+
+.loading-spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid rgba(255,255,255,0.3);
+    border-top: 4px solid #4CAF50;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Success Flash Effect */
+.success-flash {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(76, 175, 80, 0.6);
+    pointer-events: none;
+    opacity: 0;
+    z-index: 3;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    font-weight: bold;
+    transition: opacity 0.3s ease;
+}
+
+.success-flash.active {
+    opacity: 1;
+    animation: flashSuccess 0.6s ease;
+}
+
+@keyframes flashSuccess {
+    0% { 
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    50% { 
+        opacity: 1;
+        transform: scale(1.1);
+    }
+    100% { 
+        opacity: 0;
+        transform: scale(1);
+    }
+}
+
+/* Status Message */
+.status-message {
+    font-size: 1.5rem;
+    margin: 20px 0;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.1);
+    border-radius: 15px;
+    padding: 15px;
+    backdrop-filter: blur(10px);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* Control Buttons */
+.controls {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.btn {
+    background: rgba(255,255,255,0.2);
+    border: 2px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-family: 'Kanit', sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.btn:hover {
+    background: rgba(255,255,255,0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.btn.danger {
+    background: rgba(231, 76, 60, 0.3);
+    border-color: rgba(231, 76, 60, 0.5);
+}
+
+.btn.danger:hover {
+    background: rgba(231, 76, 60, 0.5);
+}
+
+/* Complete Overlay */
+.complete-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    z-index: 1000;
+    color: white;
+    text-align: center;
+}
+
+.complete-icon {
+    font-size: 8rem;
+    margin-bottom: 30px;
+    animation: bounceIn 1s ease;
+}
+
+.complete-text {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    animation: slideInUp 0.8s ease 0.5s both;
+}
+
+.complete-subtitle {
+    font-size: 1.5rem;
+    opacity: 0.9;
+    animation: slideInUp 0.8s ease 0.7s both;
+}
+
+/* Animation Classes */
+.pulse {
+    animation: pulse 0.6s ease;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+@keyframes bounceIn {
+    0% { opacity: 0; transform: scale(0.3); }
+    50% { opacity: 1; transform: scale(1.1); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .main-container {
+        width: 95%;
+    }
+    
+    .exercise-title { 
+        font-size: 1.5rem; 
+    }
+    
+    .rep-counter { 
+        font-size: 2.5rem; 
+    }
+    
+    .status-message { 
+        font-size: 1.2rem; 
+        padding: 12px;
+    }
+    
+    .complete-icon {
+        font-size: 6rem;
+    }
+    
+    .complete-text {
+        font-size: 2rem;
+    }
+    
+    .complete-subtitle {
+        font-size: 1.2rem;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+    }
+    
+    .video-container {
+        aspect-ratio: 3/4;
+        margin-bottom: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .exercise-title { 
+        font-size: 1.3rem; 
+    }
+    
+    .rep-counter { 
+        font-size: 2rem; 
+    }
+    
+    .status-message { 
+        font-size: 1rem; 
+        padding: 10px;
+    }
+    
+    .controls {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .btn {
+        width: 200px;
+    }
+    
+    .complete-icon {
+        font-size: 4rem;
+    }
+    
+    .complete-text {
+        font-size: 1.5rem;
+    }
+    
+    .complete-subtitle {
+        font-size: 1rem;
+    }
+}

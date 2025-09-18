@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบการตรวจจับและติดตามการกายภาพบำบัดผู้ป่วยโรคหลอดเลือดสมอง</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="evaluation.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <div class="header-card">
+            <h1><i class="fas fa-clipboard-check"></i> วิธีการประเมิน</h1>
+            <div class="illustration">
+                <div class="person-icon">
+                    <i class="fas fa-user-md" style="font-size: 48px; color: var(--primary-color);"></i>
+                </div>
+                <div class="document-icons">
+                    <div class="doc doc1">
+                        <i class="fas fa-file-medical"></i>
+                    </div>
+                    <div class="doc doc2">
+                        <i class="fas fa-notes-medical"></i>
+                    </div>
+                    <div class="doc doc3">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="doc doc4">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    <div class="doc doc5">
+                        <i class="fas fa-stethoscope"></i>
+                    </div>
+                    <div class="doc doc6">
+                        <i class="fas fa-pills"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Assessment Cards -->
+        <div class="assessment-card">
+            <div class="card-content">
+                <div class="card-icon">
+                    <i class="fas fa-clipboard-list"></i>
+                </div>
+                <div class="card-text">
+                    <h3>ก่อนการประเมิน</h3>
+                    <p>เตรียมความพร้อมก่อนการกายภาพบำบัด<br>ของร่างกาย</p>
+                </div>
+            </div>
+            <div class="card-actions">
+                <button class="btn-primary" data-step="pre-assessment">
+                    <i class="fas fa-play"></i>
+                    อ่าน
+                </button>
+                <button class="btn-secondary" data-step="pre-assessment">
+                    <i class="fas fa-eye"></i>
+                    ดูต่อ
+                </button>
+            </div>
+        </div>
+
+        <div class="assessment-card">
+            <div class="card-content">
+                <div class="card-icon">
+                    <i class="fas fa-user-check"></i>
+                </div>
+                <div class="card-text">
+                    <h3>ประเมิน</h3>
+                    <p>วิธีปการกายภาพบำบัด</p>
+                </div>
+            </div>
+            <div class="card-actions">
+                <button class="btn-primary" data-step="assessment">
+                    <i class="fas fa-play"></i>
+                    อ่าน
+                </button>
+                <button class="btn-secondary" data-step="assessment">
+                    <i class="fas fa-eye"></i>
+                    ดูต่อ
+                </button>
+            </div>
+        </div>
+
+        <div class="assessment-card">
+            <div class="card-content">
+                <div class="card-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="card-text">
+                    <h3>หลังการประเมิน</h3>
+                    <p>การดูรายงานการกายภาพบำบัด<br>ร่างกาย</p>
+                </div>
+            </div>
+            <div class="card-actions">
+                <button class="btn-primary" data-step="post-assessment">
+                    <i class="fas fa-play"></i>
+                    อ่าน
+                </button>
+                <button class="btn-secondary" data-step="post-assessment">
+                    <i class="fas fa-eye"></i>
+                    ดูต่อ
+                </button>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="navigation">
+            <!-- เปลี่ยนจาก button เป็น link -->
+            <a href="index1.html" class="btn-back" style="text-decoration: none; color: inherit;">
+                <i class="fas fa-arrow-left"></i>
+                ย้อนกลับ
+            </a>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay hidden" id="loadingOverlay">
+        <div class="spinner"></div>
+        <p>กำลังโหลด...</p>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal hidden" id="successModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <i class="fas fa-check-circle success-icon"></i>
+                <h3>สำเร็จ!</h3>
+            </div>
+            <div class="modal-body">
+                <p id="modalMessage">การดำเนินการเสร็จสิ้น</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" onclick="closeModal()">
+                    <i class="fas fa-check"></i>
+                    ตกลง
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ฟังก์ชันปิด Modal
+        function closeModal() {
+            const modal = document.getElementById('successModal');
+            modal.classList.add('hidden');
+        }
+
+        // Event Listeners สำหรับปุ่มต่างๆ
+        document.addEventListener('DOMContentLoaded', function() {
+            const primaryButtons = document.querySelectorAll('.btn-primary:not([onclick])');
+            const secondaryButtons = document.querySelectorAll('.btn-secondary');
+            
+            primaryButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const step = this.getAttribute('data-step');
+                    showModal('เริ่มต้น: ' + getStepName(step));
+                });
+            });
+            
+            secondaryButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const step = this.getAttribute('data-step');
+                    showModal('ดูต่อ: ' + getStepName(step));
+                });
+            });
+        });
+
+        function getStepName(step) {
+            const steps = {
+                'pre-assessment': 'ก่อนการประเมิน',
+                'assessment': 'ประเมิน',
+                'post-assessment': 'หลังการประเมิน'
+            };
+            return steps[step] || step;
+        }
+
+        function showModal(message) {
+            const modal = document.getElementById('successModal');
+            const modalMessage = document.getElementById('modalMessage');
+            modalMessage.textContent = message;
+            modal.classList.remove('hidden');
+        }
+
+        // ปิด modal เมื่อคลิกพื้นหลัง
+        document.getElementById('successModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // ปิด modal ด้วย ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
