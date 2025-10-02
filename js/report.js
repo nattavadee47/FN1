@@ -827,6 +827,11 @@ document.addEventListener('keydown', function(event) {
         refreshData();
     }
 });
+function goBack() {
+    window.history.back();
+}
+
+console.log("report.js loaded");
 
 // ===== DEBUG UTILITIES =====
 window.debugReport = {
