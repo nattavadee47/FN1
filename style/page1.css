@@ -1,0 +1,253 @@
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #e6f5ff 0%, #d4f1e8 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Decorative Background Shapes */
+.bg-shape {
+    position: absolute;
+    border-radius: 50%;
+    background: #4DBEDB;
+    opacity: 0.15;
+}
+
+.shape-1 {
+    width: 300px;
+    height: 300px;
+    top: -150px;
+    left: -100px;
+    animation: float1 8s ease-in-out infinite;
+}
+
+.shape-2 {
+    width: 200px;
+    height: 200px;
+    top: -80px;
+    right: -60px;
+    animation: float2 6s ease-in-out infinite;
+}
+
+.shape-3 {
+    width: 250px;
+    height: 250px;
+    bottom: -120px;
+    left: -80px;
+    animation: float3 7s ease-in-out infinite;
+}
+
+.shape-4 {
+    width: 350px;
+    height: 350px;
+    bottom: -180px;
+    right: -150px;
+    animation: float4 9s ease-in-out infinite;
+}
+
+@keyframes float1 {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(20px, 20px); }
+}
+
+@keyframes float2 {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(-15px, 25px); }
+}
+
+@keyframes float3 {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(25px, -15px); }
+}
+
+@keyframes float4 {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(-20px, -20px); }
+}
+
+/* Main Container */
+.container {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    max-width: 600px;
+    width: 100%;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 1s ease;
+}
+
+/* Logo Section */
+.logo-section {
+    margin-bottom: 60px;
+}
+
+.logo-icon {
+    position: relative;
+    width: 400px;
+    height: 400px;
+    margin: 0 auto 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logo-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    animation: logoFloat 3s ease-in-out infinite;
+}
+
+@keyframes logoFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+.logo-text {
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: #003B7A;
+    margin: 0 0 8px 0;
+    line-height: 1;
+}
+
+.care-text {
+    color: #4DBEDB;
+}
+
+.subtitle {
+    font-size: 1.1rem;
+    color: #6b7280;
+    font-weight: 400;
+}
+
+/* Welcome Section */
+.welcome-section {
+    margin-bottom: 40px;
+}
+
+.welcome-section h2 {
+    font-size: 2.5rem;
+    color: #003B7A;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+.welcome-description {
+    font-size: 1.2rem;
+    color: #6b7280;
+    line-height: 1.6;
+    max-width: 450px;
+    margin: 0 auto;
+}
+
+/* Button Section */
+.button-section {
+    margin-top: 40px;
+}
+
+.enter-btn {
+    background: #003B7A;
+    border: none;
+    padding: 18px 60px;
+    border-radius: 30px;
+    color: white;
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 30px rgba(0, 59, 122, 0.3);
+    font-family: 'Inter', sans-serif;
+    min-width: 200px;
+}
+
+.enter-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(0, 59, 122, 0.4);
+    background: #002855;
+}
+
+.enter-btn:active {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(0, 59, 122, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .logo-text {
+        font-size: 3rem;
+    }
+    
+    .subtitle {
+        font-size: 1rem;
+    }
+    
+    .welcome-section h2 {
+        font-size: 2rem;
+    }
+    
+    .welcome-description {
+        font-size: 1.1rem;
+    }
+    
+    .enter-btn {
+        padding: 16px 50px;
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .logo-icon {
+        width: 150px;
+        height: 150px;
+    }
+    
+    .logo-text {
+        font-size: 2.5rem;
+    }
+    
+    .subtitle {
+        font-size: 0.9rem;
+    }
+    
+    .welcome-section {
+        margin-bottom: 40px;
+    }
+    
+    .welcome-section h2 {
+        font-size: 1.8rem;
+    }
+    
+    .welcome-description {
+        font-size: 1rem;
+    }
+    
+    .enter-btn {
+        padding: 14px 40px;
+        font-size: 1rem;
+        min-width: 180px;
+    }
+    
+    .arrow-swoosh::before {
+        width: 28px;
+        left: 22px;
+    }
+    
+    .arrow-swoosh::after {
+        width: 35px;
+        left: 15px;
+    }
+}

@@ -1,23 +1,23 @@
 /* CSS Variables */
 :root {
-    --primary-color: #4fd1c7;
-    --secondary-color: #38b2ac;
-    --primary-light: #81e6d9;
-    --primary-ultra-light: #e6fffa;
-    --accent-color: #fbb040;
-    --accent-light: #fed7aa;
-    --success-color: #68d391;
-    --success-dark: #48bb78;
+    --primary-color: #4DBEDB;
+    --secondary-color: #003B7A;
+    --primary-light: #8DD9F0;
+    --primary-ultra-light: #e6f5ff;
+    --accent-color: #8CC63F;
+    --accent-light: #C8E89F;
+    --success-color: #8CC63F;
+    --success-dark: #6FA832;
     --warning-color: #f6ad55;
     --danger-color: #fc8181;
-    --text-dark: #2d3748;
+    --text-dark: #003B7A;
     --text-light: #718096;
     --bg-light: #f7fafc;
     --border-radius: 20px;
-    --shadow: 0 10px 30px rgba(79, 209, 199, 0.15);
+    --shadow: 0 10px 30px rgba(77, 190, 219, 0.15);
     --transition: all 0.3s ease;
-    --gradient-primary: linear-gradient(135deg, #4fd1c7 0%, #38b2ac 100%);
-    --gradient-background: linear-gradient(135deg, #e6fffa 0%, #bee3f8 50%, #fef3e2 100%);
+    --gradient-primary: linear-gradient(135deg, #4DBEDB 0%, #003B7A 100%);
+    --gradient-background: linear-gradient(135deg, #e6f5ff 0%, #d4f1e8 50%, #f0f9ff 100%);
 }
 
 * {
@@ -39,14 +39,14 @@ body {
 .user-header {
     background: rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(79, 209, 199, 0.2);
+    border-bottom: 1px solid rgba(77, 190, 219, 0.2);
     padding: 15px 0;
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     z-index: 1000;
-    box-shadow: 0 2px 10px rgba(79, 209, 199, 0.1);
+    box-shadow: 0 2px 10px rgba(77, 190, 219, 0.1);
 }
 
 .user-header-content {
@@ -74,7 +74,7 @@ body {
     justify-content: center;
     color: white;
     font-size: 16px;
-    box-shadow: 0 4px 12px rgba(79, 209, 199, 0.3);
+    box-shadow: 0 4px 12px rgba(77, 190, 219, 0.3);
 }
 
 .user-details {
@@ -103,8 +103,8 @@ body {
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
-    background: rgba(79, 209, 199, 0.1);
-    border: 1px solid rgba(79, 209, 199, 0.3);
+    background: rgba(77, 190, 219, 0.1);
+    border: 1px solid rgba(77, 190, 219, 0.3);
     border-radius: 8px;
     color: var(--primary-color);
     text-decoration: none;
@@ -115,20 +115,20 @@ body {
 }
 
 .nav-btn:hover {
-    background: rgba(79, 209, 199, 0.2);
+    background: rgba(77, 190, 219, 0.2);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(79, 209, 199, 0.2);
+    box-shadow: 0 4px 12px rgba(77, 190, 219, 0.2);
 }
 
 .logout-btn {
-    background: rgba(251, 176, 64, 0.1);
-    border-color: rgba(251, 176, 64, 0.3);
+    background: rgba(140, 198, 63, 0.1);
+    border-color: rgba(140, 198, 63, 0.3);
     color: var(--accent-color);
 }
 
 .logout-btn:hover {
-    background: rgba(251, 176, 64, 0.2);
-    box-shadow: 0 4px 12px rgba(251, 176, 64, 0.2);
+    background: rgba(140, 198, 63, 0.2);
+    box-shadow: 0 4px 12px rgba(140, 198, 63, 0.2);
 }
 
 /* Container */
@@ -149,7 +149,7 @@ body {
     font-weight: 700;
     margin-bottom: 15px;
     color: var(--primary-color);
-    text-shadow: 0 2px 10px rgba(79, 209, 199, 0.2);
+    text-shadow: 0 2px 10px rgba(77, 190, 219, 0.2);
 }
 
 .subtitle {
@@ -187,7 +187,7 @@ body {
     justify-content: center;
     color: white;
     font-size: 24px;
-    box-shadow: 0 4px 15px rgba(79, 209, 199, 0.3);
+    box-shadow: 0 4px 15px rgba(77, 190, 219, 0.3);
 }
 
 .report-title {
@@ -214,9 +214,9 @@ body {
 }
 
 .status-badge.completed {
-    background: rgba(104, 211, 145, 0.2);
+    background: rgba(140, 198, 63, 0.2);
     color: var(--success-dark);
-    border: 1px solid rgba(104, 211, 145, 0.3);
+    border: 1px solid rgba(140, 198, 63, 0.3);
 }
 
 /* Sections */
@@ -298,7 +298,7 @@ body {
 
 .table-info select {
     padding: 8px 12px;
-    border: 1px solid rgba(79, 209, 199, 0.3);
+    border: 1px solid rgba(77, 190, 219, 0.3);
     border-radius: 8px;
     background: white;
     color: var(--text-dark);
@@ -309,7 +309,7 @@ body {
 
 .table-info select:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(79, 209, 199, 0.1);
+    box-shadow: 0 0 0 3px rgba(77, 190, 219, 0.1);
 }
 
 .search-box {
@@ -320,7 +320,7 @@ body {
 
 .search-box input {
     padding: 10px 40px 10px 15px;
-    border: 1px solid rgba(79, 209, 199, 0.3);
+    border: 1px solid rgba(77, 190, 219, 0.3);
     border-radius: 8px;
     background: white;
     color: var(--text-dark);
@@ -332,7 +332,7 @@ body {
 
 .search-box input:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(79, 209, 199, 0.1);
+    box-shadow: 0 0 0 3px rgba(77, 190, 219, 0.1);
 }
 
 .search-box i {
@@ -345,7 +345,7 @@ body {
 .table-container {
     overflow-x: auto;
     border-radius: 12px;
-    border: 1px solid rgba(79, 209, 199, 0.2);
+    border: 1px solid rgba(77, 190, 219, 0.2);
 }
 
 .therapy-table {
@@ -367,12 +367,12 @@ body {
 
 .therapy-table td {
     padding: 12px;
-    border-bottom: 1px solid rgba(79, 209, 199, 0.1);
+    border-bottom: 1px solid rgba(77, 190, 219, 0.1);
     vertical-align: top;
 }
 
 .therapy-table tbody tr:hover {
-    background: rgba(79, 209, 199, 0.05);
+    background: rgba(77, 190, 219, 0.05);
 }
 
 .therapy-table tbody tr:last-child td {
@@ -411,7 +411,7 @@ body {
 
 .page-btn {
     padding: 8px 12px;
-    border: 1px solid rgba(79, 209, 199, 0.3);
+    border: 1px solid rgba(77, 190, 219, 0.3);
     border-radius: 6px;
     background: white;
     color: var(--primary-color);
@@ -421,7 +421,7 @@ body {
 }
 
 .page-btn:hover:not(:disabled) {
-    background: rgba(79, 209, 199, 0.1);
+    background: rgba(77, 190, 219, 0.1);
     border-color: var(--primary-color);
 }
 
@@ -519,7 +519,7 @@ body {
 
 .score-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 15px 35px rgba(79, 209, 199, 0.2);
+    box-shadow: 0 15px 35px rgba(77, 190, 219, 0.2);
 }
 
 .score-icon {
@@ -535,15 +535,15 @@ body {
 }
 
 .score-icon.motor {
-    background: linear-gradient(135deg, #4fd1c7, #38b2ac);
+    background: linear-gradient(135deg, #4DBEDB, #003B7A);
 }
 
 .score-icon.balance {
-    background: linear-gradient(135deg, #fbb040, #f6ad55);
+    background: linear-gradient(135deg, #8CC63F, #6FA832);
 }
 
 .score-icon.mobility {
-    background: linear-gradient(135deg, #68d391, #48bb78);
+    background: linear-gradient(135deg, #8CC63F, #6FA832);
 }
 
 .score-icon.cognitive {
@@ -579,18 +579,18 @@ body {
 }
 
 .score-status.excellent {
-    background: rgba(104, 211, 145, 0.2);
+    background: rgba(140, 198, 63, 0.2);
     color: var(--success-dark);
 }
 
 .score-status.good {
-    background: rgba(79, 209, 199, 0.2);
+    background: rgba(77, 190, 219, 0.2);
     color: var(--primary-color);
 }
 
 .score-status.fair {
-    background: rgba(251, 176, 64, 0.2);
-    color: var(--accent-color);
+    background: rgba(246, 173, 85, 0.2);
+    color: #ed8936;
 }
 
 .score-desc {
@@ -622,7 +622,7 @@ body {
 
 .recommendation-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 15px 35px rgba(79, 209, 199, 0.2);
+    box-shadow: 0 15px 35px rgba(77, 190, 219, 0.2);
 }
 
 .rec-icon {
@@ -636,7 +636,7 @@ body {
     font-size: 20px;
     color: white;
     margin-bottom: 15px;
-    box-shadow: 0 4px 15px rgba(79, 209, 199, 0.3);
+    box-shadow: 0 4px 15px rgba(77, 190, 219, 0.3);
 }
 
 .recommendation-card h4 {
@@ -660,7 +660,7 @@ body {
 }
 
 .recommendation-card li::before {
-    content: 'โ“';
+    content: '✓';
     position: absolute;
     left: 0;
     color: var(--success-color);
@@ -694,25 +694,25 @@ body {
 .btn-primary {
     background: var(--gradient-primary);
     color: white;
-    box-shadow: 0 4px 15px rgba(79, 209, 199, 0.3);
+    box-shadow: 0 4px 15px rgba(77, 190, 219, 0.3);
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(79, 209, 199, 0.4);
+    box-shadow: 0 8px 25px rgba(77, 190, 219, 0.4);
 }
 
 .btn-secondary {
     background: rgba(255, 255, 255, 0.9);
     color: var(--text-dark);
     border: 2px solid var(--primary-light);
-    box-shadow: 0 4px 15px rgba(79, 209, 199, 0.1);
+    box-shadow: 0 4px 15px rgba(77, 190, 219, 0.1);
 }
 
 .btn-secondary:hover {
     background: var(--primary-ultra-light);
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(79, 209, 199, 0.2);
+    box-shadow: 0 8px 25px rgba(77, 190, 219, 0.2);
 }
 
 /* Loading Overlay */

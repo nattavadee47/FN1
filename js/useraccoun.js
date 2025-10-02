@@ -545,49 +545,48 @@ class RegistrationSystem {
     }
 
     collectStepData(stepNumber) {
-        if (stepNumber === 1) {
-            this.config.formData.phone = document.getElementById('phone')?.value.trim();
-            this.config.formData.password = document.getElementById('password')?.value;
-        } else if (stepNumber === 2) {
-            // Basic info
-            this.config.formData.first_name = document.getElementById('firstName')?.value.trim();
-            this.config.formData.last_name = document.getElementById('lastName')?.value.trim();
-            this.config.formData.gender = document.getElementById('gender')?.value;
-            this.config.formData.role = document.getElementById('userType')?.value;
+    if (stepNumber === 1) {
+        this.config.formData.phone = document.getElementById('phone')?.value.trim();
+        this.config.formData.password = document.getElementById('password')?.value;
+    } else if (stepNumber === 2) {
+        // Basic info
+        this.config.formData.first_name = document.getElementById('firstName')?.value.trim();
+        this.config.formData.last_name = document.getElementById('lastName')?.value.trim();
+        this.config.formData.gender = document.getElementById('gender')?.value; // ส่งภาษาไทยตรงๆ
+        this.config.formData.role = document.getElementById('userType')?.value; // ส่งภาษาไทยตรงๆ
 
-            // Birth date
-            const day = document.getElementById('birthDate')?.value;
-            const month = document.getElementById('birthMonth')?.value;
-            const year = document.getElementById('birthYear')?.value;
-            
-            if (day && month && year) {
-                this.config.formData.birth_date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-            }
+        // Birth date
+        const day = document.getElementById('birthDate')?.value;
+        const month = document.getElementById('birthMonth')?.value;
+        const year = document.getElementById('birthYear')?.value;
+        
+        if (day && month && year) {
+            this.config.formData.birth_date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
 
-            // Patient-specific data
-            if (this.config.formData.role === 'ผู้ป่วย') {
-                this.config.formData.weight = parseFloat(document.getElementById('weight')?.value) || null;
-                this.config.formData.height = parseInt(document.getElementById('height')?.value) || null;
-                this.config.formData.injured_side = document.getElementById('injuredSide')?.value || null;
-                this.config.formData.injured_part = document.getElementById('injuredPart')?.value || null;
-                this.config.formData.emergency_contact_name = document.getElementById('emergencyContactName')?.value?.trim() || null;
-                this.config.formData.emergency_contact_phone = document.getElementById('emergencyContactPhone')?.value?.replace(/-/g, '') || null;
-                this.config.formData.emergency_contact_relation = document.getElementById('emergencyContactRelation')?.value?.trim() || null;
-            }
+        // Patient-specific data
+        if (this.config.formData.role === 'ผู้ป่วย') {
+            this.config.formData.weight = parseFloat(document.getElementById('weight')?.value) || null;
+            this.config.formData.height = parseInt(document.getElementById('height')?.value) || null;
+            this.config.formData.injured_side = document.getElementById('injuredSide')?.value || 'ซ้าย';
+            this.config.formData.injured_part = document.getElementById('injuredPart')?.value || 'อื่นๆ';
+            this.config.formData.emergency_contact_name = document.getElementById('emergencyContactName')?.value?.trim() || null;
+            this.config.formData.emergency_contact_phone = document.getElementById('emergencyContactPhone')?.value?.replace(/-/g, '') || null;
+            this.config.formData.emergency_contact_relation = document.getElementById('emergencyContactRelation')?.value?.trim() || null;
+        }
 
-            // Physiotherapist-specific data
-            if (this.config.formData.role === 'นักกายภาพบำบัด') {
-                this.config.formData.license_number = document.getElementById('licenseNumber')?.value?.trim() || null;
-                this.config.formData.specialization = document.getElementById('specialization')?.value?.trim() || null;
-            }
+        // Physiotherapist-specific data
+        if (this.config.formData.role === 'นักกายภาพบำบัด') {
+            this.config.formData.license_number = document.getElementById('licenseNumber')?.value?.trim() || null;
+            this.config.formData.specialization = document.getElementById('specialization')?.value?.trim() || null;
+        }
 
-            // Caregiver-specific data
-            if (this.config.formData.role === 'ผู้ดูแล') {
-                this.config.formData.relationship = document.getElementById('relationship')?.value?.trim() || null;
-            }
+        // Caregiver-specific data
+        if (this.config.formData.role === 'ผู้ดูแล') {
+            this.config.formData.relationship = document.getElementById('relationship')?.value?.trim() || null;
         }
     }
-
+}
     /**
      * Make API request with timeout
      */

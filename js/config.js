@@ -90,7 +90,7 @@ const StrokeConfig = {
             primaryJoints: ['shoulder', 'elbow'],
             difficulty: 'easy'
         },
-        'leg-forward': {
+        'leg-enension': {
             name: 'เหยียดเข่าตรง',
             description: 'เหยียดเข่าให้ตรงจากท่านั่ง',
             landmarks: [23, 24, 25, 26, 27, 28], // สะโพก, เข่า, ข้อเท้า

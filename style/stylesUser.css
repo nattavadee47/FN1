@@ -6,28 +6,28 @@
 /* CSS Custom Properties */
 :root {
     /* Primary Colors - Calming Blue-Green */
-    --primary: #4fd1c7;
-    --primary-light: #81e6d9;
-    --primary-dark: #38b2ac;
-    --secondary: #38b2ac;
-    --accent: #fbb040;
+    --primary: #4DBEDB;
+    --primary-light: #8DD9F0;
+    --primary-dark: #003B7A;
+    --secondary: #003B7A;
+    --accent: #8CC63F;
     
     /* Status Colors */
-    --success: #68d391;
-    --success-dark: #48bb78;
+    --success: #8CC63F;
+    --success-dark: #6FA832;
     --error: #e53e3e;
-    --warning: #fbb040;
-    --info: #4fd1c7;
+    --warning: #8CC63F;
+    --info: #4DBEDB;
     
     /* Text Colors */
-    --text-primary: #2d3748;
+    --text-primary: #003B7A;
     --text-secondary: #718096;
     --text-muted: #a0aec0;
     
     /* Background Colors */
     --bg-primary: #ffffff;
     --bg-secondary: #f7fafc;
-    --bg-light: #e6fffa;
+    --bg-light: #e6f5ff;
     --bg-border: #e2e8f0;
     
     /* Shadows */
@@ -231,7 +231,7 @@ body {
     background: var(--primary);
     border-color: var(--primary);
     transform: scale(1.1);
-    box-shadow: 0 0 0 4px rgba(79, 209, 199, 0.2);
+    box-shadow: 0 0 0 4px rgba(77, 190, 219, 0.2);
 }
 
 .progress-step.active .step-number {
@@ -247,7 +247,7 @@ body {
 .progress-step.completed .step-circle {
     background: var(--success);
     border-color: var(--success);
-    box-shadow: 0 0 0 4px rgba(104, 211, 145, 0.2);
+    box-shadow: 0 0 0 4px rgba(140, 198, 63, 0.2);
 }
 
 .progress-step.completed .step-number {
@@ -387,7 +387,7 @@ body {
 .input-wrapper select:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(79, 209, 199, 0.15);
+    box-shadow: 0 0 0 4px rgba(77, 190, 219, 0.15);
     transform: translateY(-1px);
 }
 
@@ -554,7 +554,7 @@ body {
 .form-group.success input,
 .form-group.success select {
     border-color: var(--success);
-    box-shadow: 0 0 0 4px rgba(104, 211, 145, 0.15);
+    box-shadow: 0 0 0 4px rgba(140, 198, 63, 0.15);
 }
 
 .form-group.success .input-icon {
@@ -680,7 +680,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(45, 55, 72, 0.7);
+    background: rgba(0, 59, 122, 0.7);
     display: none;
     align-items: center;
     justify-content: center;
@@ -730,7 +730,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(45, 55, 72, 0.7);
+    background: rgba(0, 59, 122, 0.7);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -817,42 +817,10 @@ body {
     gap: var(--space-2);
 }
 
-/* Additional Header Elements */
-.header-bg-animation {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border-radius: var(--radius-xl);
-    pointer-events: none;
-}
-
-/* Status Content */
 .status-content {
     display: flex;
     align-items: center;
     gap: var(--space-2);
-}
-
-/* Therapist Fields */
-.therapist-fields {
-    margin-top: var(--space-8);
-    padding: var(--space-6);
-    background: var(--bg-light);
-    border: 2px solid var(--primary-light);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
-}
-
-/* Patient Fields */
-.patient-fields {
-    margin-top: var(--space-8);
-    padding: var(--space-6);
-    background: var(--bg-light);
-    border: 2px solid var(--primary-light);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
 }
 
 .status-icon {
@@ -878,6 +846,53 @@ body {
     color: var(--text-secondary);
     margin-top: var(--space-2);
     font-weight: 500;
+}
+
+/* BMI Status Colors */
+.bmi-status.underweight { 
+    background: var(--bg-light); 
+    color: var(--primary-dark); 
+    border-color: var(--primary-dark);
+}
+.bmi-status.normal { 
+    background: #dcfce7; 
+    color: var(--success-dark); 
+    border-color: var(--success-dark);
+}
+.bmi-status.overweight { 
+    background: #C8E89F; 
+    color: #6FA832; 
+    border-color: #6FA832;
+}
+.bmi-status.obese { 
+    background: #fee2e2; 
+    color: #991b1b; 
+    border-color: #991b1b;
+}
+
+.bmi-category.underweight { color: var(--primary-dark); }
+.bmi-category.normal { color: var(--success-dark); }
+.bmi-category.overweight { color: #6FA832; }
+.bmi-category.obese { color: #991b1b; }
+
+/* Therapist Fields */
+.therapist-fields {
+    margin-top: var(--space-8);
+    padding: var(--space-6);
+    background: var(--bg-light);
+    border: 2px solid var(--primary-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Patient Fields */
+.patient-fields {
+    margin-top: var(--space-8);
+    padding: var(--space-6);
+    background: var(--bg-light);
+    border: 2px solid var(--primary-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
 }
 
 /* Responsive Design */
@@ -972,13 +987,13 @@ body {
 
 /* Focus States */
 .btn:focus-visible {
-    outline: 3px solid rgba(79, 209, 199, 0.4);
+    outline: 3px solid rgba(77, 190, 219, 0.4);
     outline-offset: 2px;
 }
 
 .input-wrapper input:focus-visible,
 .input-wrapper select:focus-visible {
-    outline: 3px solid rgba(79, 209, 199, 0.4);
+    outline: 3px solid rgba(77, 190, 219, 0.4);
     outline-offset: 2px;
 }
 
@@ -987,30 +1002,3 @@ body {
 .d-none { display: none; }
 .d-block { display: block; }
 .d-flex { display: flex; }
-
-/* BMI Status Colors */
-.bmi-status.underweight { 
-    background: var(--bg-light); 
-    color: var(--primary-dark); 
-    border-color: var(--primary-dark);
-}
-.bmi-status.normal { 
-    background: #dcfce7; 
-    color: var(--success-dark); 
-    border-color: var(--success-dark);
-}
-.bmi-status.overweight { 
-    background: #fed7aa; 
-    color: #c2410c; 
-    border-color: #c2410c;
-}
-.bmi-status.obese { 
-    background: #fee2e2; 
-    color: #991b1b; 
-    border-color: #991b1b;
-}
-
-.bmi-category.underweight { color: var(--primary-dark); }
-.bmi-category.normal { color: var(--success-dark); }
-.bmi-category.overweight { color: #c2410c; }
-.bmi-category.obese { color: #991b1b; }

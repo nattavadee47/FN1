@@ -358,33 +358,30 @@ class LoginSystem {
     }
 
     loginSuccess(result, remember) {
-        const userData = {
-            user_id: result.user.user_id,
-            phone: result.user.phone,
-            full_name: result.user.full_name,
-            role: result.user.role,
-            token: result.token,
-            loginTime: new Date().toISOString(),
-            apiSource: this.config.apiBaseUrl.includes('render.com') ? 'render' : 'localhost'
-        };
+    const userData = {
+        user_id: result.user.user_id,
+        phone: result.user.phone,
+        full_name: result.user.full_name,
+        role: result.user.role,
+        token: result.token,
+        loginTime: new Date().toISOString()
+    };
 
-        if (remember) {
-            localStorage.setItem('userData', JSON.stringify(userData));
-        } else {
-            sessionStorage.setItem('userData', JSON.stringify(userData));
-        }
+    console.log('💾 Saving data:', userData);
 
-        if (result.token) {
-            localStorage.setItem('authToken', result.token);
-        }
-
-        this.recordLoginHistory(userData);
-        this.showSuccessModal();
-
-        setTimeout(() => {
-            this.redirectToDashboard(userData);
-        }, 2000);
+    if (remember) {
+        localStorage.setItem('userData', JSON.stringify(userData));
+        localStorage.setItem('authToken', result.token); // ✅ สำคัญมาก!
+    } else {
+        sessionStorage.setItem('userData', JSON.stringify(userData));
+        sessionStorage.setItem('authToken', result.token); // ✅ สำคัญมาก!
     }
+
+    // ✅ ตรวจสอบว่าบันทึกสำเร็จ
+    const savedToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    console.log('✅ Token saved successfully:', savedToken ? 'YES' : 'NO');
+    console.log('Token preview:', savedToken?.substring(0, 20) + '...');
+}
 
     loginFailed(message) {
         this.incrementFailedAttempts();
@@ -575,11 +572,15 @@ class LoginSystem {
             statusElement.classList.add('disconnected');
             if (statusIcon) statusIcon.className = 'fas fa-exclamation-triangle';
             
-            setTimeout(() => {
-                statusElement.style.display = 'none';
-            }, 5000);
-        }
+            // ใน login.js หลังบรรทัด 383
+// ควรมีโค้ดประมาณนี้
+        setTimeout(() => {
+            if (userData.role === 'Patient') {
+                window.location.href = 'patient-dashboard.html'; // หรือ report.html
+            }
+        }, 1500);
     }
+}
 
     // Failed attempts management
     getFailedAttempts() {

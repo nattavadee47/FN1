@@ -6,15 +6,15 @@
 /* CSS Custom Properties */
 :root {
     /* Colors */
-    --primary: #667eea;
-    --primary-dark: #5a67d8;
-    --primary-light: #a5b4fc;
-    --secondary: #764ba2;
-    --accent: #38b2ac;
-    --success: #48bb78;
+    --primary: #003B7A;
+    --primary-dark: #4DBEDB;
+    --primary-light: #8DD9F0;
+    --secondary: #4DBEDB;
+    --accent: #003B7A;
+    --success: #6FA832;
     --error: #f56565;
     --warning: #ed8936;
-    --info: #4299e1;
+    --info: #4DBEDB;
     
     /* Neutrals */
     --white: #ffffff;
@@ -87,7 +87,7 @@ body {
     font-size: var(--text-base);
     line-height: 1.6;
     color: var(--gray-800);
-    background: linear-gradient(135deg, var(--primary-light) 0%, var(--gray-50) 50%, var(--accent) 100%);
+    background: linear-gradient(135deg, #8DD9F0 0%, var(--gray-50) 50%, #003B7A 100%);
     min-height: 100vh;
     padding-top: 80px;
 }
@@ -340,7 +340,7 @@ body {
 .input-wrapper select:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    box-shadow: 0 0 0 3px rgba(0, 59, 122, 0.1);
 }
 
 .input-wrapper input::placeholder {
@@ -403,7 +403,7 @@ body {
 .form-group.success input,
 .form-group.success select {
     border-color: var(--success);
-    box-shadow: 0 0 0 3px rgba(72, 187, 120, 0.1);
+    box-shadow: 0 0 0 3px rgba(111, 168, 50, 0.1);
 }
 
 .form-group.success .input-icon {

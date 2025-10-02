@@ -2,6 +2,7 @@
 // ระบบกายภาพบำบัดสำหรับผู้ป่วย Stroke - ไฟล์หลัก (แก้ไขแล้ว)
 // main.js
 // ========================================
+
 class StrokeTherapySystem {
     constructor() {
         this.poseDetection = null;

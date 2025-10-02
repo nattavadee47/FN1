@@ -1,376 +1,326 @@
-// report.js - อัปเดตการโหลดข้อมูล (Updated for Render API)
-
-// API Configuration for Render
+// ===== CONFIG =====
 const API_CONFIG = {
+    BASE_URL: 'https://bn1-1.onrender.com', // ✅ เพิ่ม BASE_URL
     RENDER_URL: 'https://bn1-1.onrender.com',
     LOCAL_URL: 'http://localhost:4000',
-    TIMEOUT: 15000 // 15 seconds timeout
+    TIMEOUT: 10000
 };
 
-// Test and determine which API to use
-async function getApiBaseUrl() {
-    try {
-        console.log('🌐 Testing Render API connection...');
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-        
-        const response = await fetch(`${API_CONFIG.RENDER_URL}/health`, {
-            method: 'GET',
-            signal: controller.signal,
-            headers: { 'Accept': 'application/json' }
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (response.ok) {
-            console.log('✅ Render API is available');
-            return API_CONFIG.RENDER_URL;
-        }
-    } catch (error) {
-        console.log('⚠️ Render API not available:', error.message);
-    }
-    
-    // Fallback to localhost
-    console.log('🔄 Using localhost as fallback');
-    return API_CONFIG.LOCAL_URL;
-}
-
-// ตัวแปรสำหรับเก็บข้อมูล
+// ===== GLOBAL VARIABLES =====
 let exerciseHistory = [];
 let currentPage = 1;
 let itemsPerPage = 10;
-let API_BASE_URL = null; // Will be determined dynamically
 
-// เริ่มต้นหน้า
-window.addEventListener('load', async function() {
-    // Determine API base URL
-    API_BASE_URL = await getApiBaseUrl();
-    console.log('📡 Using API:', API_BASE_URL);
-    
-    // ตรวจสอบและสร้าง Authentication
-    const auth = ensureAuthentication();
-    
-    // ตั้งค่าข้อมูลผู้ใช้
-    document.getElementById('userName').textContent = auth.userData.full_name || 'ผู้ใช้งาน';
-    document.getElementById('patientName').textContent = `คุณ ${auth.userData.full_name || 'ผู้ใช้งาน'}`;
-    
-    // ตั้งค่าวันที่
-    const today = new Date();
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    const thaiDate = today.toLocaleDateString('th-TH', options);
-    document.getElementById('assessmentDate').textContent = thaiDate;
-    
-    // ตรวจสอบการเชื่อมต่อฐานข้อมูล
-    await checkDatabaseConnection();
-    
-    // โหลดข้อมูลการออกกำลังกาย
-    loadExerciseData();
-    
-    // เริ่มต้นตาราง
-    initTableFunctions();
-    
-    // เริ่มต้นกราฟ
-    initChart();
-});
-
-// โหลดข้อมูลการออกกำลังกาย
-async function loadExerciseData() {
-    console.log('Loading exercise data...');
-    
-    // โหลดผลล่าสุดจาก lastSessionData
-    const latestResults = localStorage.getItem('lastSessionData');
-    if (latestResults) {
-        try {
-            const results = JSON.parse(latestResults);
-            console.log('Latest session found:', results);
-            displayLatestSession(results);
-        } catch (e) {
-            console.error('Error parsing latest session data:', e);
-        }
-    }
-
-    // พยายามโหลดจากฐานข้อมูลก่อน
-    try {
-        await loadFromDatabase();
-    } catch (error) {
-        console.error('❌ ไม่สามารถโหลดจากฐานข้อมูลได้:', error);
-        console.log('📂 โหลดจาก localStorage แทน');
-        loadFromLocalStorage();
-    }
-}
-
-/**
- * Make API request with timeout
- */
-async function makeApiRequest(endpoint, options = {}) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
-
-    try {
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-            ...options,
-            signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        return response;
-    } catch (error) {
-        clearTimeout(timeoutId);
-        if (error.name === 'AbortError') {
-            throw new Error('Request timeout - Render API might be sleeping');
-        }
-        throw error;
-    }
-}
-
-// แก้ไขใน report.js - ฟังก์ชัน loadFromDatabase
-async function loadFromDatabase() {
-    console.log('🌐 กำลังโหลดข้อมูลจากฐานข้อมูล...');
-    
-    // ลองใช้ token ที่มีอยู่ก่อน
+// ===== AUTH & USER FUNCTIONS =====
+function getAuthToken() {
     let token = localStorage.getItem('authToken');
     
-    // หาก token ไม่ใช่ JWT หรือไม่มี ให้ข้ามไปใช้ localStorage
-    if (!token || token.startsWith('jwt_mock_token_') || token.startsWith('mock_token_') || token.startsWith('fallback_token_')) {
-        console.log('⚠️ ไม่พบ JWT token ที่ถูกต้อง - ข้ามการเชื่อมต่อฐานข้อมูล');
-        throw new Error('No valid JWT token found');
+    if (!token) {
+        token = sessionStorage.getItem('authToken');
     }
     
-    console.log('🔑 Using token:', token.substring(0, 20) + '...');
-    
-    try {
-        // โหลดประวัติการออกกำลังกาย
-        const response = await makeApiRequest('/api/exercise-sessions', {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
+    if (!token) {
+        const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+        if (userData) {
+            try {
+                const parsed = JSON.parse(userData);
+                token = parsed.token;
+            } catch (e) {
+                console.error('Error parsing userData:', e);
             }
-        });
-        
-        console.log('📡 API Response Status:', response.status);
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ API Error Response:', errorText);
-            
-            // หากเป็น 401 หรือ 403 แสดงว่า token หมดอายุหรือไม่ถูกต้อง
-            if (response.status === 401 || response.status === 403) {
-                console.log('🚫 Token ไม่ถูกต้อง หรือไม่มีสิทธิ์ - ใช้ localStorage แทน');
-                localStorage.removeItem('authToken'); // ลบ token ที่ไม่ถูกต้อง
-                throw new Error('Invalid or expired token');
-            }
-            
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
-        const result = await response.json();
-        console.log('✅ API call successful, data received:', result.data?.length || 0, 'sessions');
-        
-        processApiData(result);
-        
-    } catch (networkError) {
-        console.error('🌐 Network error:', networkError.message);
-        throw networkError;
-    }
-}
-
-// ฟังก์ชันประมวลผลข้อมูลจาก API
-function processApiData(result) {
-    if (!result.success) {
-        throw new Error(result.message);
     }
     
-    // แปลงข้อมูลจากฐานข้อมูลให้ตรงกับรูปแบบเดิม
-    exerciseHistory = result.data.map(session => ({
-        exercise: session.exercise_name_en || 'unknown',
-        exerciseName: session.exercise_name_th || session.exercise_name_en || 'ไม่ระบุ',
-        reps: session.actual_reps || 0,
-        targetReps: session.target_reps || 10,
-        accuracy: Math.round(session.accuracy_percent) || 0,
-        sessionStats: {
-            exerciseTime: Math.floor(Math.random() * 300) + 120, // จำลองเวลา 2-7 นาที
-            bestAccuracy: Math.round(session.accuracy_percent) + Math.floor(Math.random() * 5),
-            improvementRate: ((Math.random() - 0.5) * 10).toFixed(1)
-        },
-        date: session.session_date_thai || new Date(session.session_date).toLocaleDateString('th-TH'),
-        time: session.session_time || new Date(session.session_date).toLocaleTimeString('th-TH', {
-            hour: '2-digit', 
-            minute: '2-digit'
-        }),
-        completedAt: session.session_date,
-        source: API_BASE_URL.includes('render.com') ? 'render' : 'localhost'
-    }));
-    
-    const source = API_BASE_URL.includes('render.com') ? 'Render' : 'localhost';
-    console.log(`✅ โหลดจาก ${source} API สำเร็จ:`, exerciseHistory.length, 'รายการ');
-    
-    // อัปเดต UI
-    updateTable();
-    updateSummaryCards();
-    updateChart();
-    updateRecommendations();
-    
-    // โหลดสถิติเพิ่มเติม
-    loadExerciseStats().catch(err => {
-        console.warn('⚠️ ไม่สามารถโหลดสถิติเพิ่มเติมได้:', err.message);
+    console.log('🔍 Token search result:', {
+        found: !!token,
+        source: token ? (localStorage.getItem('authToken') ? 'localStorage' : 'sessionStorage') : 'NOT FOUND',
+        preview: token ? token.substring(0, 20) + '...' : 'NULL'
     });
+    
+    return token;
 }
 
-// ฟังก์ชันโหลดสถิติจากฐานข้อมูล
-async function loadExerciseStats() {
-    const token = localStorage.getItem('authToken');
-    if (!token || token.startsWith('jwt_mock_token_') || token.startsWith('mock_token_') || token.startsWith('fallback_token_')) {
-        return; // ข้าม หาก token ไม่ถูกต้อง
-    }
+function getUserData() {
+    const userDataStr = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+    if (!userDataStr) return null;
     
     try {
-        const response = await makeApiRequest('/api/exercise-stats', {
+        return JSON.parse(userDataStr);
+    } catch (e) {
+        console.error('Error parsing user data:', e);
+        return null;
+    }
+}
+
+async function loadUserProfile() {
+    try {
+        const token = getAuthToken();
+        const userData = getUserData();
+        
+        console.log('=== DEBUG TOKEN ===');
+        console.log('Token exists:', !!token);
+        console.log('Token value:', token ? token.substring(0, 30) + '...' : 'NULL');
+        console.log('UserData:', userData);
+        
+        if (!token || token === 'null' || token === 'undefined') {
+            console.error('❌ Invalid token detected');
+            alert('ไม่พบ token หรือ token ไม่ถูกต้อง กรุณา login ใหม่');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 1500);
+            return;
+        }
+        
+        if (!userData || !userData.user_id) {
+            console.error('❌ Invalid user data');
+            alert('ไม่พบข้อมูลผู้ใช้ กรุณา login ใหม่');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 1500);
+            return;
+        }
+
+        const userNameEl = document.getElementById('userName');
+        const patientNameEl = document.getElementById('patientName');
+        
+        if (userNameEl && userData.full_name) {
+            userNameEl.textContent = userData.full_name;
+        }
+        
+        if (patientNameEl && userData.full_name) {
+            patientNameEl.textContent = `คุณ ${userData.full_name}`;
+        }
+
+        console.log('🔑 Fetching user profile with token:', token.substring(0, 20) + '...');
+        console.log('📋 User ID:', userData.user_id);
+
+        const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/${userData.user_id}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
         });
+
+        console.log('Profile API response status:', response.status);
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Profile API error:', errorData);
+            
+            if (response.status === 401 || response.status === 403) {
+                alert('Session หมดอายุ กรุณาเข้าสู่ระบบใหม่');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+            }
+            return;
+        }
+
+        const result = await response.json();
         
-        if (response.ok) {
-            const result = await response.json();
-            if (result.success) {
-                console.log('📊 สถิติจากฐานข้อมูล:', result.data);
-                updateStatsFromDatabase(result.data);
+        if (result.success && result.data) {
+            console.log('✅ User profile loaded:', result.data);
+            
+            if (result.data.patient_info) {
+                updatePatientInfo(result.data.patient_info);
             }
         }
+
     } catch (error) {
-        console.error('ไม่สามารถโหลดสถิติได้:', error);
-    }
-}
-// ฟังก์ชันอัปเดต UI ด้วยสถิติจากฐานข้อมูล
-function updateStatsFromDatabase(stats) {
-    if (!stats.total_stats) return;
-    
-    const totalStats = stats.total_stats;
-    
-    // อัปเดตการ์ดสรุป
-    const bestEl = document.getElementById('bestSession');
-    const consistencyEl = document.getElementById('consistencyScore');
-    
-    if (bestEl && totalStats.best_accuracy) {
-        bestEl.textContent = `${Math.round(totalStats.best_accuracy)}%`;
-        bestEl.style.color = totalStats.best_accuracy >= 90 ? '#4CAF50' : 
-                            totalStats.best_accuracy >= 75 ? '#FF9800' : '#F44336';
-    }
-    
-    if (consistencyEl && stats.weekly_progress) {
-        const weeklyCount = stats.weekly_progress.length;
-        consistencyEl.textContent = `${weeklyCount} วัน`;
-        consistencyEl.style.color = weeklyCount >= 5 ? '#4CAF50' : 
-                                   weeklyCount >= 3 ? '#FF9800' : '#F44336';
-    }
-    
-    // อัปเดตข้อความสถิติ
-    const chartSubtitle = document.getElementById('chartSubtitle');
-    if (chartSubtitle && totalStats.total_sessions) {
-        const source = API_BASE_URL && API_BASE_URL.includes('render.com') ? 'Render' : 'localhost';
-        chartSubtitle.textContent = `ทำไปแล้ว ${totalStats.total_sessions} ครั้ง - ความแม่นยำเฉลี่ย ${Math.round(totalStats.avg_accuracy)}% (${source})`;
+        console.error('❌ Error loading user profile:', error);
     }
 }
 
-// ฟังก์ชันโหลดจาก localStorage (fallback)
-function loadFromLocalStorage() {
-    console.log('📂 โหลดจาก localStorage...');
+function updatePatientInfo(patientInfo) {
+    console.log('📋 Updating patient info:', patientInfo);
     
-    const history = localStorage.getItem('exerciseHistory');
-    if (history) {
+    if (patientInfo.birth_date) {
         try {
-            exerciseHistory = JSON.parse(history);
-            console.log('Exercise history loaded from localStorage:', exerciseHistory.length, 'sessions');
+            const birthDate = new Date(patientInfo.birth_date);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const monthDiff = today.getMonth() - birthDate.getMonth();
             
-            // เพิ่ม source เป็น localStorage
-            exerciseHistory = exerciseHistory.map(session => ({
-                ...session,
-                source: 'localStorage'
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            
+            const ageEl = document.querySelector('.info-grid .info-item:nth-child(2) .value');
+            if (ageEl) {
+                ageEl.textContent = `${age} ปี`;
+                console.log('✅ Age updated:', age);
+            }
+        } catch (e) {
+            console.error('Error calculating age:', e);
+        }
+    }
+    
+    if (patientInfo.gender) {
+        const genderMap = {
+            'Male': 'ชาย',
+            'Female': 'หญิง',
+            'Other': 'อื่นๆ'
+        };
+        const genderEl = document.querySelector('.info-grid .info-item:nth-child(3) .value');
+        if (genderEl) {
+            genderEl.textContent = genderMap[patientInfo.gender] || patientInfo.gender;
+            console.log('✅ Gender updated:', patientInfo.gender);
+        }
+    }
+    
+    if (patientInfo.injured_side) {
+        const sideMap = {
+            'Left': 'ด้านซ้าย',
+            'Right': 'ด้านขวา',
+            'Both': 'ทั้งสองข้าง'
+        };
+        const sideEl = document.querySelector('.info-grid .info-item:nth-child(6) .value');
+        if (sideEl) {
+            sideEl.textContent = sideMap[patientInfo.injured_side] || patientInfo.injured_side;
+            console.log('✅ Injured side updated:', patientInfo.injured_side);
+        }
+    }
+    
+    console.log('✅ Patient info update completed');
+}
+
+// ===== DATA LOADING FUNCTIONS =====
+async function loadExerciseData() {
+    console.log('Loading exercise data from API...');
+    
+    try {
+        const token = getAuthToken();
+        
+        if (!token) {
+            console.warn('❌ No auth token found');
+            alert('กรุณาเข้าสู่ระบบใหม่อีกครั้ง');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 2000);
+            return;
+        }
+
+        console.log('🔑 Using token:', token.substring(0, 20) + '...');
+
+        const response = await fetch(`${API_CONFIG.BASE_URL}/api/exercise-sessions`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        console.log('API Response status:', response.status);
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('API Error:', errorData);
+            throw new Error(errorData.message || `API Error: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('API Result:', result);
+        
+        if (result.success && result.data && result.data.length > 0) {
+            console.log('✅ Loaded', result.data.length, 'sessions from database');
+            
+            exerciseHistory = result.data.map(session => ({
+                exercise: session.exercise_id,
+                exerciseName: session.exercise_name_th || session.exercise_name_en || 'ท่ากายภาพ',
+                reps: session.actual_reps || 0,
+                accuracy: parseFloat(session.accuracy_percent) || 0,
+                sessionStats: {
+                    exerciseTime: 0,
+                    bestAccuracy: parseFloat(session.accuracy_percent) || 0,
+                    improvementRate: 0
+                },
+                date: session.session_date_thai || new Date().toLocaleDateString('th-TH'),
+                time: session.session_time || new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+                notes: session.notes || ''
             }));
-            
-            // เรียงลำดับตามวันที่ใหม่ไปเก่า
+
             exerciseHistory.sort((a, b) => {
-                const dateA = new Date(a.completedAt || a.date);
-                const dateB = new Date(b.completedAt || b.date);
+                const dateA = new Date(a.date.split('/').reverse().join('-') + ' ' + a.time);
+                const dateB = new Date(b.date.split('/').reverse().join('-') + ' ' + b.time);
                 return dateB - dateA;
             });
-            
+
             updateTable();
             updateSummaryCards();
             updateChart();
             updateRecommendations();
-        } catch (e) {
-            console.error('Error parsing exercise history:', e);
+            
+        } else {
+            console.log('⚠️ No exercise data found in database');
             createSampleData();
         }
-    } else {
-        console.log('No exercise history found, creating sample data');
+
+    } catch (error) {
+        console.error('❌ Error loading exercise data:', error);
+        
+        if (error.message.includes('token') || error.message.includes('Access')) {
+            alert('Session หมดอายุ กรุณาเข้าสู่ระบบใหม่');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 2000);
+            return;
+        }
+        
+        console.log('Falling back to sample data...');
         createSampleData();
     }
 }
 
-// แสดงผลเซสชันล่าสุด
-function displayLatestSession(results) {
-    const section = document.getElementById('latestSessionSection');
-    if (!section) return;
-    
-    section.style.display = 'block';
-
-    // อัปเดตข้อมูลเซสชันล่าสุด
-    const elements = {
-        date: document.getElementById('latestSessionDate'),
-        exerciseName: document.getElementById('latestExerciseName'),
-        reps: document.getElementById('latestReps'),
-        accuracy: document.getElementById('latestAccuracy'),
-        duration: document.getElementById('latestDuration'),
-        bestAccuracy: document.getElementById('latestBestAccuracy'),
-        improvement: document.getElementById('latestImprovement')
-    };
-
-    if (elements.date) {
-        elements.date.textContent = `${results.date} เวลา ${results.time}`;
-    }
-    if (elements.exerciseName) {
-        elements.exerciseName.textContent = results.exerciseName;
-    }
-    if (elements.reps) {
-        elements.reps.textContent = `${results.reps} ครั้ง`;
-    }
-    if (elements.accuracy) {
-        elements.accuracy.textContent = `${results.accuracy}%`;
-    }
-    
-    if (elements.duration && results.sessionStats) {
-        const duration = Math.floor(results.sessionStats.exerciseTime / 60);
-        const seconds = results.sessionStats.exerciseTime % 60;
-        elements.duration.textContent = `${duration}:${seconds.toString().padStart(2, '0')} นาที`;
-    }
+async function loadExerciseStats() {
+    try {
+        const token = getAuthToken();
         
-    if (elements.bestAccuracy && results.sessionStats) {
-        elements.bestAccuracy.textContent = `${results.sessionStats.bestAccuracy}%`;
-    }
-        
-    if (elements.improvement && results.sessionStats) {
-        const improvement = parseFloat(results.sessionStats.improvementRate) || 0;
-        elements.improvement.textContent = improvement >= 0 ? `+${improvement}%` : `${improvement}%`;
-        elements.improvement.style.color = improvement >= 0 ? '#4CAF50' : '#F44336';
-    }
+        if (!token) return;
 
-    // เพิ่มแอนิเมชัน
-    setTimeout(() => {
-        section.style.opacity = '0';
-        section.style.transform = 'translateY(20px)';
-        section.style.transition = 'all 0.6s ease';
-        setTimeout(() => {
-            section.style.opacity = '1';
-            section.style.transform = 'translateY(0)';
-        }, 100);
-    }, 300);
+        const response = await fetch(`${API_CONFIG.BASE_URL}/api/exercise-stats`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            console.log('✅ Stats loaded:', result.data);
+            
+            if (result.data.weekly_progress && result.data.weekly_progress.length > 0) {
+                updateChartWithData(result.data.weekly_progress);
+            }
+        }
+
+    } catch (error) {
+        console.error('Error loading stats:', error);
+    }
 }
 
-// สร้างข้อมูลตัวอย่าง (เฉพาะกรณีไม่มีข้อมูลจริง)
+function updateChartWithData(weeklyData) {
+    const canvas = document.getElementById('progressChart');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    
+    const data = weeklyData.map(day => Math.round(day.avg_accuracy || 0));
+    const labels = weeklyData.map(day => {
+        const date = new Date(day.session_date);
+        return date.toLocaleDateString('th-TH', { weekday: 'short' });
+    });
+    
+    drawChart(ctx, canvas, data.reverse(), labels.reverse());
+}
+
+// ===== SAMPLE DATA =====
 function createSampleData() {
     const sampleData = [
         {
@@ -384,11 +334,10 @@ function createSampleData() {
                 improvementRate: 5.2
             },
             date: '05/09/2568',
-            time: '09:30',
-            source: 'sample'
+            time: '09:30'
         },
         {
-            exercise: 'leg-forward',
+            exercise: 'leg-extension',
             exerciseName: 'ท่าเหยียดเข่าตรง',
             reps: 12,
             accuracy: 82,
@@ -398,42 +347,11 @@ function createSampleData() {
                 improvementRate: 3.1
             },
             date: '06/09/2568',
-            time: '14:15',
-            source: 'sample'
-        },
-        {
-            exercise: 'trunk-sway',
-            exerciseName: 'ท่าโยกลำตัวซ้าย-ขวา',
-            reps: 8,
-            accuracy: 75,
-            sessionStats: {
-                exerciseTime: 300,
-                bestAccuracy: 82,
-                improvementRate: 2.8
-            },
-            date: '07/09/2568',
-            time: '10:45',
-            source: 'sample'
-        },
-        {
-            exercise: 'neck-tilt',
-            exerciseName: 'ท่าเอียงศีรษะซ้าย-ขวา',
-            reps: 10,
-            accuracy: 88,
-            sessionStats: {
-                exerciseTime: 250,
-                bestAccuracy: 92,
-                improvementRate: 7.3
-            },
-            date: '08/09/2568',
-            time: '16:20',
-            source: 'sample'
+            time: '14:15'
         }
     ];
     
-    // เฉพาะกรณีที่ไม่มีข้อมูลเลย ถึงจะใช้ตัวอย่าง
     if (exerciseHistory.length === 0) {
-        localStorage.setItem('exerciseHistory', JSON.stringify(sampleData));
         exerciseHistory = sampleData;
         updateTable();
         updateSummaryCards();
@@ -441,28 +359,7 @@ function createSampleData() {
     }
 }
 
-// ฟังก์ชันรีเฟรชข้อมูล
-function refreshData() {
-    console.log('Refreshing data...');
-    exerciseHistory = []; // ล้างข้อมูลเก่า
-    currentPage = 1; // รีเซ็ตหน้า
-    loadExerciseData(); // โหลดข้อมูลใหม่
-}
-
-// เพิ่มปุ่มรีเฟรชข้อมูล
-function addRefreshButton() {
-    const tableControls = document.querySelector('.table-controls');
-    if (tableControls && !document.getElementById('refreshBtn')) {
-        const refreshBtn = document.createElement('button');
-        refreshBtn.id = 'refreshBtn';
-        refreshBtn.className = 'nav-btn';
-        refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> รีเฟรช';
-        refreshBtn.onclick = refreshData;
-        tableControls.appendChild(refreshBtn);
-    }
-}
-
-// อัปเดตตาราง
+// ===== TABLE FUNCTIONS =====
 function updateTable() {
     const tbody = document.getElementById('therapyTableBody');
     if (!tbody) return;
@@ -482,11 +379,8 @@ function updateTable() {
         const session = exerciseHistory[i];
         const row = tbody.insertRow();
         
-        // เพิ่มไอคอนแสดงแหล่งข้อมูล
-        const sourceIcon = getSourceIcon(session.source);
-        
         row.innerHTML = `
-            <td>${session.date}<br><small style="color: #718096;">${session.time} ${sourceIcon}</small></td>
+            <td>${session.date}<br><small style="color: #718096;">${session.time}</small></td>
             <td><strong>${session.exerciseName}</strong></td>
             <td><span style="font-weight: 600;">${session.reps} ครั้ง</span></td>
             <td>
@@ -501,26 +395,9 @@ function updateTable() {
 
     updateTableInfo();
     updatePagination();
-    addRefreshButton(); // เพิ่มปุ่มรีเฟรช
+    addRefreshButton();
 }
 
-// ฟังก์ชันแสดงไอคอนแหล่งข้อมูล
-function getSourceIcon(source) {
-    switch(source) {
-        case 'render':
-            return '<i class="fas fa-cloud" title="Render API" style="color: #4CAF50;"></i>';
-        case 'localhost':
-            return '<i class="fas fa-server" title="Local API" style="color: #2196F3;"></i>';
-        case 'localStorage':
-            return '<i class="fas fa-save" title="Local Storage" style="color: #FF9800;"></i>';
-        case 'sample':
-            return '<i class="fas fa-flask" title="Sample Data" style="color: #9C27B0;"></i>';
-        default:
-            return '';
-    }
-}
-
-// ฟังก์ชันช่วยเหลือ
 function getAccuracyClass(accuracy) {
     if (accuracy >= 90) return 'excellent';
     if (accuracy >= 80) return 'good';
@@ -542,20 +419,42 @@ function generateComment(session) {
     return 'ควรฝึกเพิ่มเติม';
 }
 
-// อัปเดตสรุปผลงาน
+function updateTableInfo() {
+    if (exerciseHistory.length === 0) return;
+    
+    const startIndex = (currentPage - 1) * itemsPerPage + 1;
+    const endIndex = Math.min(currentPage * itemsPerPage, exerciseHistory.length);
+    
+    const tableInfoText = document.getElementById('tableInfoText');
+    if (tableInfoText) {
+        tableInfoText.textContent = 
+            `แสดง ${startIndex} ถึง ${endIndex} จาก ${exerciseHistory.length} รายการ`;
+    }
+}
+
+function updatePagination() {
+    const totalPages = Math.ceil(exerciseHistory.length / itemsPerPage);
+    
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageInfo = document.getElementById('pageInfo');
+    
+    if (prevBtn) prevBtn.disabled = currentPage === 1;
+    if (nextBtn) nextBtn.disabled = currentPage === totalPages || exerciseHistory.length === 0;
+    if (pageInfo) pageInfo.textContent = exerciseHistory.length === 0 ? '0' : currentPage;
+}
+
+// ===== SUMMARY & CHART =====
 function updateSummaryCards() {
     if (exerciseHistory.length === 0) return;
 
-    // คำนวดค่าเฉลี่ย
     const totalAccuracy = exerciseHistory.reduce((sum, session) => sum + (session.accuracy || 0), 0);
     const averageAccuracy = Math.round(totalAccuracy / exerciseHistory.length);
     
-    // หาความแม่นยำสูงสุด
     const bestAccuracy = Math.max(...exerciseHistory.map(session => 
         session.sessionStats?.bestAccuracy || session.accuracy || 0
     ));
     
-    // คำนวดความสม่ำเสมอ (จำนวนวันที่ออกกำลังกายในสัปดาห์ที่ผ่านมา)
     const lastWeek = new Date();
     lastWeek.setDate(lastWeek.getDate() - 7);
     const recentSessions = exerciseHistory.filter(session => {
@@ -567,7 +466,6 @@ function updateSummaryCards() {
         }
     });
 
-    // อัปเดตเฉพาะ elements ที่มีอยู่จริง
     const bestEl = document.getElementById('bestSession');
     const consistencyEl = document.getElementById('consistencyScore');
     
@@ -580,18 +478,13 @@ function updateSummaryCards() {
         consistencyEl.textContent = `${recentSessions.length} วัน`;
         consistencyEl.style.color = recentSessions.length >= 5 ? '#4CAF50' : recentSessions.length >= 3 ? '#FF9800' : '#F44336';
     }
-
-    console.log('Summary updated:', { averageAccuracy, consistency: recentSessions.length, bestAccuracy });
 }
 
-// อัปเดตคำแนะนำ
 function updateRecommendations() {
     if (exerciseHistory.length === 0) return;
 
-    const recentAccuracy = exerciseHistory[0]?.accuracy || 0;
     const averageAccuracy = exerciseHistory.reduce((sum, s) => sum + (s.accuracy || 0), 0) / exerciseHistory.length;
 
-    // คำแนะนำการออกกำลังกาย
     const exerciseRecs = document.getElementById('exerciseRecommendations');
     if (!exerciseRecs) return;
     
@@ -618,9 +511,138 @@ function updateRecommendations() {
     }
 }
 
-// เริ่มต้นฟังก์ชันตาราง
+function updateChart() {
+    const canvas = document.getElementById('progressChart');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    
+    if (exerciseHistory.length === 0) {
+        drawEmptyChart(ctx, canvas);
+        return;
+    }
+    
+    const recentData = exerciseHistory.slice(0, 7).reverse();
+    const data = recentData.map(session => session.accuracy || 0);
+    const labels = recentData.map(session => {
+        try {
+            const date = new Date(session.date.split('/').reverse().join('-'));
+            return date.toLocaleDateString('th-TH', { weekday: 'short' });
+        } catch (e) {
+            return 'N/A';
+        }
+    });
+    
+    drawChart(ctx, canvas, data, labels);
+}
+
+function drawChart(ctx, canvas, data, labels) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    const padding = 40;
+    const chartWidth = canvas.width - 2 * padding;
+    const chartHeight = canvas.height - 2 * padding;
+    const maxValue = 100;
+    
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 1;
+    
+    for (let i = 0; i <= 5; i++) {
+        const y = padding + (chartHeight / 5) * i;
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(padding + chartWidth, y);
+        ctx.stroke();
+        
+        ctx.fillStyle = '#718096';
+        ctx.font = '10px Kanit';
+        ctx.textAlign = 'right';
+        const value = maxValue - (maxValue / 5) * i;
+        ctx.fillText(`${value}%`, padding - 10, y + 3);
+    }
+    
+    if (data.length > 0) {
+        for (let i = 0; i < data.length; i++) {
+            const x = padding + (chartWidth / Math.max(1, data.length - 1)) * i;
+            ctx.beginPath();
+            ctx.moveTo(x, padding);
+            ctx.lineTo(x, padding + chartHeight);
+            ctx.stroke();
+        }
+    }
+    
+    if (data.length > 1) {
+        ctx.strokeStyle = '#4fd1c7';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        
+        data.forEach((value, index) => {
+            const x = padding + (chartWidth / Math.max(1, data.length - 1)) * index;
+            const y = padding + chartHeight - (value / maxValue) * chartHeight;
+            
+            if (index === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        });
+        
+        ctx.stroke();
+    }
+    
+    data.forEach((value, index) => {
+        const x = padding + (chartWidth / Math.max(1, data.length - 1)) * index;
+        const y = padding + chartHeight - (value / maxValue) * chartHeight;
+        
+        ctx.fillStyle = '#38b2ac';
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        ctx.fillStyle = '#2d3748';
+        ctx.font = '10px Kanit';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${value}%`, x, y - 10);
+    });
+    
+    ctx.fillStyle = '#718096';
+    ctx.font = '10px Kanit';
+    ctx.textAlign = 'center';
+    labels.forEach((label, index) => {
+        const x = padding + (chartWidth / Math.max(1, data.length - 1)) * index;
+        ctx.fillText(label, x, canvas.height - 10);
+    });
+}
+
+function drawEmptyChart(ctx, canvas) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#718096';
+    ctx.font = '16px Kanit';
+    ctx.textAlign = 'center';
+    ctx.fillText('ยังไม่มีข้อมูลการออกกำลังกาย', canvas.width / 2, canvas.height / 2);
+}
+
+// ===== NAVIGATION & UI =====
+function refreshData() {
+    console.log('Refreshing data...');
+    exerciseHistory = [];
+    currentPage = 1;
+    loadExerciseData();
+}
+
+function addRefreshButton() {
+    const tableControls = document.querySelector('.table-controls');
+    if (tableControls && !document.getElementById('refreshBtn')) {
+        const refreshBtn = document.createElement('button');
+        refreshBtn.id = 'refreshBtn';
+        refreshBtn.className = 'nav-btn';
+        refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> รีเฟรช';
+        refreshBtn.onclick = refreshData;
+        tableControls.appendChild(refreshBtn);
+    }
+}
+
 function initTableFunctions() {
-    // ค้นหา
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('input', function() {
@@ -634,7 +656,6 @@ function initTableFunctions() {
         });
     }
 
-    // เปลี่ยนจำนวนรายการต่อหน้า
     const entriesSelect = document.getElementById('entriesSelect');
     if (entriesSelect) {
         entriesSelect.addEventListener('change', function() {
@@ -644,7 +665,6 @@ function initTableFunctions() {
         });
     }
 
-    // ปุ่มเปลี่ยนหน้า
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
     
@@ -668,7 +688,6 @@ function initTableFunctions() {
     }
 }
 
-// แสดงผลลัพธ์ที่กรอง
 function displayFilteredResults(filteredData) {
     const tbody = document.getElementById('therapyTableBody');
     if (!tbody) return;
@@ -683,10 +702,8 @@ function displayFilteredResults(filteredData) {
 
     filteredData.forEach(session => {
         const row = tbody.insertRow();
-        const sourceIcon = getSourceIcon(session.source);
-        
         row.innerHTML = `
-            <td>${session.date}<br><small style="color: #718096;">${session.time} ${sourceIcon}</small></td>
+            <td>${session.date}<br><small style="color: #718096;">${session.time}</small></td>
             <td><strong>${session.exerciseName}</strong></td>
             <td><span style="font-weight: 600;">${session.reps} ครั้ง</span></td>
             <td>
@@ -706,162 +723,6 @@ function displayFilteredResults(filteredData) {
     }
 }
 
-// อัปเดตข้อมูลตาราง
-function updateTableInfo() {
-    if (exerciseHistory.length === 0) return;
-    
-    const startIndex = (currentPage - 1) * itemsPerPage + 1;
-    const endIndex = Math.min(currentPage * itemsPerPage, exerciseHistory.length);
-    
-    const tableInfoText = document.getElementById('tableInfoText');
-    if (tableInfoText) {
-        tableInfoText.textContent = 
-            `แสดง ${startIndex} ถึง ${endIndex} จาก ${exerciseHistory.length} รายการ`;
-    }
-}
-
-// อัปเดตการเปลี่ยนหน้า
-function updatePagination() {
-    const totalPages = Math.ceil(exerciseHistory.length / itemsPerPage);
-    
-    const prevBtn = document.getElementById('prevBtn');
-    const nextBtn = document.getElementById('nextBtn');
-    const pageInfo = document.getElementById('pageInfo');
-    
-    if (prevBtn) prevBtn.disabled = currentPage === 1;
-    if (nextBtn) nextBtn.disabled = currentPage === totalPages || exerciseHistory.length === 0;
-    if (pageInfo) pageInfo.textContent = exerciseHistory.length === 0 ? '0' : currentPage;
-}
-
-// สร้างกราฟ
-function initChart() {
-    const canvas = document.getElementById('progressChart');
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    
-    if (exerciseHistory.length === 0) {
-        drawEmptyChart(ctx, canvas);
-        return;
-    }
-    
-    // ข้อมูลกราฟ - เอา 7 รายการล่าสุด
-    const recentData = exerciseHistory.slice(0, 7).reverse(); // ย้อนกลับเพื่อให้เรียงจากเก่าไปใหม่
-    const data = recentData.map(session => session.accuracy || 0);
-    const labels = recentData.map(session => {
-        try {
-            const date = new Date(session.date.split('/').reverse().join('-'));
-            return date.toLocaleDateString('th-TH', { weekday: 'short' });
-        } catch (e) {
-            return 'N/A';
-        }
-    });
-    
-    drawChart(ctx, canvas, data, labels);
-}
-
-// อัปเดตกราฟ - ฟังก์ชันที่หายไป
-function updateChart() {
-    initChart(); // เรียกใช้ initChart เพื่อวาดกราฟใหม่
-}
-
-// วาดกราฟ
-function drawChart(ctx, canvas, data, labels) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    const padding = 40;
-    const chartWidth = canvas.width - 2 * padding;
-    const chartHeight = canvas.height - 2 * padding;
-    const maxValue = 100;
-    
-    // วาดเส้นตาราง
-    ctx.strokeStyle = '#e2e8f0';
-    ctx.lineWidth = 1;
-    
-    // เส้นแนวนอน
-    for (let i = 0; i <= 5; i++) {
-        const y = padding + (chartHeight / 5) * i;
-        ctx.beginPath();
-        ctx.moveTo(padding, y);
-        ctx.lineTo(padding + chartWidth, y);
-        ctx.stroke();
-        
-        // ป้ายกำกับแกน Y
-        ctx.fillStyle = '#718096';
-        ctx.font = '10px Kanit';
-        ctx.textAlign = 'right';
-        const value = maxValue - (maxValue / 5) * i;
-        ctx.fillText(`${value}%`, padding - 10, y + 3);
-    }
-    
-    // เส้นแนวตั้ง (เฉพาะกรณีที่มีข้อมูล)
-    if (data.length > 0) {
-        for (let i = 0; i < data.length; i++) {
-            const x = padding + (chartWidth / Math.max(1, data.length - 1)) * i;
-            ctx.beginPath();
-            ctx.moveTo(x, padding);
-            ctx.lineTo(x, padding + chartHeight);
-            ctx.stroke();
-        }
-    }
-    
-    // วาดเส้นกราฟ
-    if (data.length > 1) {
-        ctx.strokeStyle = '#4fd1c7';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        
-        data.forEach((value, index) => {
-            const x = padding + (chartWidth / Math.max(1, data.length - 1)) * index;
-            const y = padding + chartHeight - (value / maxValue) * chartHeight;
-            
-            if (index === 0) {
-                ctx.moveTo(x, y);
-            } else {
-                ctx.lineTo(x, y);
-            }
-        });
-        
-        ctx.stroke();
-    }
-    
-    // วาดจุด
-    data.forEach((value, index) => {
-        const x = padding + (chartWidth / Math.max(1, data.length - 1)) * index;
-        const y = padding + chartHeight - (value / maxValue) * chartHeight;
-        
-        ctx.fillStyle = '#38b2ac';
-        ctx.beginPath();
-        ctx.arc(x, y, 4, 0, 2 * Math.PI);
-        ctx.fill();
-        
-        // ป้ายกำกับค่า
-        ctx.fillStyle = '#2d3748';
-        ctx.font = '10px Kanit';
-        ctx.textAlign = 'center';
-        ctx.fillText(`${value}%`, x, y - 10);
-    });
-    
-    // ป้ายกำกับแกน X
-    ctx.fillStyle = '#718096';
-    ctx.font = '10px Kanit';
-    ctx.textAlign = 'center';
-    labels.forEach((label, index) => {
-        const x = padding + (chartWidth / Math.max(1, data.length - 1)) * index;
-        ctx.fillText(label, x, canvas.height - 10);
-    });
-}
-
-// วาดกราฟเปล่า
-function drawEmptyChart(ctx, canvas) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#718096';
-    ctx.font = '16px Kanit';
-    ctx.textAlign = 'center';
-    ctx.fillText('ยังไม่มีข้อมูลการออกกำลังกาย', canvas.width / 2, canvas.height / 2);
-}
-
-// ฟังก์ชันการนำทาง
 function goBack() {
     showLoading('กำลังกลับไปหน้าหลัก...');
     setTimeout(() => {
@@ -872,8 +733,8 @@ function goBack() {
 function exitSystem() {
     if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
         showLoading('กำลังออกจากระบบ...');
-        sessionStorage.removeItem('userData');
-        localStorage.removeItem('authToken');
+        localStorage.clear();
+        sessionStorage.clear();
         setTimeout(() => {
             window.location.href = 'login.html';
         }, 1000);
@@ -891,23 +752,18 @@ function printReport() {
 function continueExercise() {
     showLoading('กำลังเตรียมโปรแกรมการออกกำลังกาย...');
     setTimeout(() => {
-        window.location.href = 'index2.html';
+        window.location.href = 'patient-dashboard.html';
     }, 1000);
 }
 
-// ฟังก์ชันแสดง/ซ่อนหน้าโหลด
 function showLoading(message) {
     const loadingOverlay = document.getElementById('loadingOverlay');
     if (loadingOverlay) {
         const messageElement = loadingOverlay.querySelector('p');
         if (messageElement) {
-            messageElement.textContent = message;
+            messageElement.textContent = message || 'กำลังประมวลผล...';
         }
         loadingOverlay.classList.remove('hidden');
-        
-        document.body.style.transform = 'scale(0.95)';
-        document.body.style.opacity = '0.7';
-        document.body.style.transition = 'all 0.3s ease';
     }
 }
 
@@ -915,21 +771,52 @@ function hideLoading() {
     const loadingOverlay = document.getElementById('loadingOverlay');
     if (loadingOverlay) {
         loadingOverlay.classList.add('hidden');
-        
-        document.body.style.transform = 'scale(1)';
-        document.body.style.opacity = '1';
     }
 }
 
-// ฟังก์ชันทดสอบ - สามารถเรียกใน console
-function testData() {
-    console.log('Current exercise history:', exerciseHistory);
-    console.log('localStorage exerciseHistory:', localStorage.getItem('exerciseHistory'));
-    console.log('localStorage lastSessionData:', localStorage.getItem('lastSessionData'));
-    console.log('API Base URL:', API_BASE_URL);
-}
+// ===== INITIALIZATION =====
+window.addEventListener('load', async function() {
+    console.log('🚀 Report page loading...');
+    
+    const token = getAuthToken();
+    if (!token) {
+        alert('กรุณาเข้าสู่ระบบใหม่อีกครั้ง');
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    const today = new Date();
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    const thaiDate = today.toLocaleDateString('th-TH', options);
+    
+    const assessmentDateEl = document.getElementById('assessmentDate');
+    if (assessmentDateEl) {
+        assessmentDateEl.textContent = thaiDate;
+    }
+    
+    showLoading('กำลังโหลดข้อมูล...');
+    
+    try {
+        await Promise.all([
+            loadUserProfile(),
+            loadExerciseData(),
+            loadExerciseStats()
+        ]);
+        
+        initTableFunctions();
+        
+        console.log('✅ Report page initialized');
+        console.log('📊 Exercise history:', exerciseHistory.length, 'sessions');
+        
+    } catch (error) {
+        console.error('❌ Error initializing report:', error);
+        alert('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+    } finally {
+        hideLoading();
+    }
+});
 
-// เพิ่ม event listener สำหรับ keyboard shortcuts
+// ===== KEYBOARD SHORTCUTS =====
 document.addEventListener('keydown', function(event) {
     if (event.ctrlKey && event.key === 'r') {
         event.preventDefault();
@@ -941,119 +828,16 @@ document.addEventListener('keydown', function(event) {
     }
 });
 
-// ฟังก์ชันตรวจสอบสถานะการเชื่อมต่อ
-async function checkDatabaseConnection() {
-    const token = localStorage.getItem('authToken');
-    if (!token || token.startsWith('jwt_mock_token_') || token.startsWith('mock_token_') || token.startsWith('fallback_token_')) {
-        console.warn('⚠️ ไม่พบ JWT token ที่ถูกต้อง - ใช้โหมดออฟไลน์');
-        return false;
-    }
-    
-    try {
-        const response = await makeApiRequest('/test-db', {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        const result = await response.json();
-        const isConnected = response.ok && result.success;
-        
-        const source = API_BASE_URL && API_BASE_URL.includes('render.com') ? 'Render' : 'localhost';
-        console.log(isConnected ? `✅ เชื่อมต่อ ${source} ฐานข้อมูลได้` : `❌ เชื่อมต่อ ${source} ฐานข้อมูลไม่ได้`);
-        
-        if (!isConnected) {
-            console.log('Database response:', result);
-        }
-        
-        return isConnected;
-    } catch (error) {
-        console.error('❌ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้:', error);
-        return false;
-    }
-}
-
-// ตรวจสอบ Authentication ก่อนโหลดข้อมูล - แก้ไขให้ไม่สร้าง mock token
-function ensureAuthentication() {
-    let token = localStorage.getItem('authToken');
-    let userData = localStorage.getItem('userData');
-    
-    console.log('🔍 Checking authentication:', { hasToken: !!token, hasUserData: !!userData });
-    
-    // หาก token ไม่มีหรือเป็น mock token ให้แจ้งเตือน
-    if (!token || token.startsWith('jwt_mock_token_') || token.startsWith('mock_token_') || token.startsWith('fallback_token_')) {
-        console.log('⚠️ ไม่พบ JWT token ที่ถูกต้อง - ใช้โหมดออฟไลน์');
-        // ไม่สร้าง mock token ใหม่
-        token = null;
-    }
-    
-    // ถ้าไม่มีข้อมูลผู้ใช้ สร้างขึ้นใหม่
-    if (!userData) {
-        const mockUser = {
-            user_id: Math.floor(Math.random() * 1000) + 1,
-            phone: '08' + Math.floor(Math.random() * 100000000).toString().padStart(8, '0'),
-            full_name: 'ผู้ใช้ทดสอบระบบ',
-            role: 'Patient'
-        };
-        localStorage.setItem('userData', JSON.stringify(mockUser));
-        console.log('👤 สร้าง mock user data:', mockUser);
-        userData = JSON.stringify(mockUser);
-    }
-    
-    return { token, userData: JSON.parse(userData) };
-}
-
-// Debug function - เรียกได้จาก console
+// ===== DEBUG UTILITIES =====
 window.debugReport = {
     exerciseHistory: () => exerciseHistory,
+    token: () => getAuthToken(),
+    userData: () => getUserData(),
     refreshData: refreshData,
-    testData: testData,
     clearData: () => {
         localStorage.removeItem('exerciseHistory');
         localStorage.removeItem('lastSessionData');
         console.log('All data cleared');
         refreshData();
-    },
-    showToken: () => {
-        const token = localStorage.getItem('authToken');
-        console.log('Current token:', token);
-        return token;
-    },
-    showUser: () => {
-        const userData = localStorage.getItem('userData');
-        console.log('Current user:', userData);
-        return userData;
-    },
-    resetAuth: () => {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userData');
-        console.log('Authentication reset');
-        location.reload();
-    },
-    testAPI: async () => {
-        const token = localStorage.getItem('authToken');
-        if (!token || token.startsWith('mock_token_') || token.startsWith('fallback_token_')) {
-            console.log('❌ ไม่มี JWT token ที่ถูกต้อง');
-            return;
-        }
-        
-        try {
-            const response = await makeApiRequest('/api/exercise-sessions', {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            console.log('API Test Result:', response.status, await response.text());
-        } catch (error) {
-            console.error('API Test Error:', error);
-        }
-    },
-    getApiUrl: () => {
-        console.log('Current API URL:', API_BASE_URL);
-        return API_BASE_URL;
     }
 };

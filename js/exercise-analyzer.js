@@ -76,7 +76,7 @@ class ExerciseAnalyzer {
             case 'arm-raise-forward':
                 analysis = this.analyzeArmRaiseForward(landmarks, angles);
                 break;
-            case 'leg-forward':
+            case 'leg-extension':
                 analysis = this.analyzeLegForward(landmarks, angles);
                 break;
             case 'trunk-sway':
