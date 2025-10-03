@@ -456,41 +456,54 @@ class SimplePoseDetector {
     }
     
     analyzeLegExtension(landmarks) {
-        const leftHip = landmarks[23];
-        const rightHip = landmarks[24];
-        const leftKnee = landmarks[25];
-        const rightKnee = landmarks[26];
-        const leftAnkle = landmarks[27];
-        const rightAnkle = landmarks[28];
+    const leftHip = landmarks[23];
+    const rightHip = landmarks[24];
+    const leftKnee = landmarks[25];
+    const rightKnee = landmarks[26];
+    const leftAnkle = landmarks[27];
+    const rightAnkle = landmarks[28];
 
-        if (!leftHip || !rightHip || !leftKnee || !rightKnee || !leftAnkle || !rightAnkle) {
-            return { shouldIncrement: false, feedback: 'ไม่พบจุดขา' };
-        }
-
-        // เลือกข้างที่เคลื่อนไหวได้มากที่สุด
-        const leftLift = leftHip.y - leftAnkle.y;
-        const rightLift = rightHip.y - rightAnkle.y;
-        const maxLift = Math.max(leftLift, rightLift);
-
-        let shouldIncrement = false;
-        let feedback = 'เตรียมตัวเหยียดเข่า';
-
-        if (maxLift > 0.05) {  // ยกขาขึ้น
-            if (this.exerciseState.phase === 'rest') {
-                this.exerciseState.phase = 'extending';
-                feedback = 'เหยียดขา...';
-            }
-        } else {
-            if (this.exerciseState.phase === 'extending') {
-                shouldIncrement = true;
-                this.exerciseState.phase = 'rest';
-                feedback = 'ยอดเยี่ยม! ✅';
-            }
-        }
-
-        return { shouldIncrement, feedback };
+    if (!leftHip || !rightHip || !leftKnee || !rightKnee || !leftAnkle || !rightAnkle) {
+        return { shouldIncrement: false, feedback: 'ไม่พบจุดขา' };
     }
-    
+
+    // คำนวณมุมที่เข่าทั้งสองข้าง (ยิ่งตรงมาก = มุมมากขึ้น)
+    const leftKneeAngle = this.calculateAngle(leftHip, leftKnee, leftAnkle);
+    const rightKneeAngle = this.calculateAngle(rightHip, rightKnee, rightAnkle);
+    const maxKneeAngle = Math.max(leftKneeAngle, rightKneeAngle);
+
+    // คำนวณความสูงของเข่า (ยกขาขึ้น = y ลดลง)
+    const leftKneeLift = leftHip.y - leftKnee.y;
+    const rightKneeLift = rightHip.y - rightKnee.y;
+    const maxKneeLift = Math.max(leftKneeLift, rightKneeLift);
+
+    let shouldIncrement = false;
+    let feedback = 'เตรียมตัวเหยียดเข่า';
+
+    // เกณฑ์: เหยียดเข่าตรง (มุม > 160°) และยกขาขึ้น (lift > 0.08)
+    if (maxKneeAngle > 160 && maxKneeLift > 0.08) {
+        if (this.exerciseState.phase === 'rest') {
+            shouldIncrement = true;
+            this.exerciseState.phase = 'extended';
+            feedback = '✅ เหยียดขาสำเร็จ! ดีมาก';
+        } else {
+            feedback = 'กำลังเหยียดขา...';
+        }
+    } else if (maxKneeAngle < 140 && maxKneeLift < 0.05) {
+        this.exerciseState.phase = 'rest';
+        feedback = 'พร้อมเหยียดขาครั้งต่อไป';
+    } else {
+        if (maxKneeAngle < 160) {
+            feedback = `เหยียดขาให้ตรงมากขึ้น (${Math.round(maxKneeAngle)}°)`;
+        } else if (maxKneeLift < 0.08) {
+            feedback = 'ยกขาให้สูงขึ้น';
+        }
+    }
+
+    return { shouldIncrement, feedback };
+}
+
+
     analyzeNeckTilt(landmarks) {
         const leftEar = landmarks[7];
         const rightEar = landmarks[8];
