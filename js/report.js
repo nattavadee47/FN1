@@ -1,6 +1,60 @@
+// ===== UTILITY FUNCTIONS - Thai DateTime =====
+function getThaiDateTime() {
+    const now = new Date();
+    
+    // แปลงเป็นเวลาไทย (UTC+7)
+    const thaiTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+    
+    return {
+        date: thaiTime.toLocaleDateString('th-TH', { 
+            year: 'numeric', 
+            month: '2-digit', 
+            day: '2-digit' 
+        }),
+        time: thaiTime.toLocaleTimeString('th-TH', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: false
+        }),
+        fullDate: thaiTime.toLocaleDateString('th-TH', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        }),
+        timestamp: thaiTime.toISOString(),
+        dayOfWeek: thaiTime.toLocaleDateString('th-TH', { weekday: 'short' })
+    };
+}
+
+function formatThaiDate(dateString) {
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('th-TH', { 
+            year: 'numeric', 
+            month: '2-digit', 
+            day: '2-digit' 
+        });
+    } catch (e) {
+        return dateString;
+    }
+}
+
+function formatThaiTime(dateString) {
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleTimeString('th-TH', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: false
+        });
+    } catch (e) {
+        return dateString;
+    }
+}
+
 // ===== CONFIG =====
 const API_CONFIG = {
-    BASE_URL: 'https://bn1-1.onrender.com', // ✅ เพิ่ม BASE_URL
+    BASE_URL: 'https://bn1-1.onrender.com',
     RENDER_URL: 'https://bn1-1.onrender.com',
     LOCAL_URL: 'http://localhost:4000',
     TIMEOUT: 10000
@@ -91,7 +145,7 @@ async function loadUserProfile() {
             patientNameEl.textContent = `คุณ ${userData.full_name}`;
         }
 
-        console.log('🔑 Fetching user profile with token:', token.substring(0, 20) + '...');
+        console.log('🔒 Fetching user profile with token:', token.substring(0, 20) + '...');
         console.log('📋 User ID:', userData.user_id);
 
         const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/${userData.user_id}`, {
@@ -201,7 +255,7 @@ async function loadExerciseData() {
             return;
         }
 
-        console.log('🔑 Using token:', token.substring(0, 20) + '...');
+        console.log('🔒 Using token:', token.substring(0, 20) + '...');
 
         const response = await fetch(`${API_CONFIG.BASE_URL}/api/exercise-sessions`, {
             method: 'GET',
@@ -225,26 +279,29 @@ async function loadExerciseData() {
         if (result.success && result.data && result.data.length > 0) {
             console.log('✅ Loaded', result.data.length, 'sessions from database');
             
-            exerciseHistory = result.data.map(session => ({
-                exercise: session.exercise_id,
-                exerciseName: session.exercise_name_th || session.exercise_name_en || 'ท่ากายภาพ',
-                reps: session.actual_reps || 0,
-                accuracy: parseFloat(session.accuracy_percent) || 0,
-                sessionStats: {
-                    exerciseTime: 0,
-                    bestAccuracy: parseFloat(session.accuracy_percent) || 0,
-                    improvementRate: 0
-                },
-                date: session.session_date_thai || new Date().toLocaleDateString('th-TH'),
-                time: session.session_time || new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
-                notes: session.notes || ''
-            }));
-
-            exerciseHistory.sort((a, b) => {
-                const dateA = new Date(a.date.split('/').reverse().join('-') + ' ' + a.time);
-                const dateB = new Date(b.date.split('/').reverse().join('-') + ' ' + b.time);
-                return dateB - dateA;
+            exerciseHistory = result.data.map(session => {
+                // แปลงวันที่และเวลาเป็นรูปแบบไทย
+                const sessionDate = session.session_date ? new Date(session.session_date) : new Date();
+                
+                return {
+                    exercise: session.exercise_id,
+                    exerciseName: session.exercise_name_th || session.exercise_name_en || 'ท่ากายภาพ',
+                    reps: session.actual_reps || 0,
+                    accuracy: parseFloat(session.accuracy_percent) || 0,
+                    sessionStats: {
+                        exerciseTime: session.session_duration || 0,
+                        bestAccuracy: parseFloat(session.accuracy_percent) || 0,
+                        improvementRate: 0
+                    },
+                    date: formatThaiDate(sessionDate),
+                    time: formatThaiTime(sessionDate),
+                    notes: session.notes || '',
+                    timestamp: sessionDate.getTime()
+                };
             });
+
+            // เรียงตามเวลาล่าสุด
+            exerciseHistory.sort((a, b) => b.timestamp - a.timestamp);
 
             updateTable();
             updateSummaryCards();
@@ -322,6 +379,8 @@ function updateChartWithData(weeklyData) {
 
 // ===== SAMPLE DATA =====
 function createSampleData() {
+    const thaiDateTime = getThaiDateTime();
+    
     const sampleData = [
         {
             exercise: 'arm-raise-forward',
@@ -333,8 +392,9 @@ function createSampleData() {
                 bestAccuracy: 85,
                 improvementRate: 5.2
             },
-            date: '05/09/2568',
-            time: '09:30'
+            date: thaiDateTime.date,
+            time: thaiDateTime.time,
+            timestamp: Date.now()
         },
         {
             exercise: 'leg-extension',
@@ -346,8 +406,9 @@ function createSampleData() {
                 bestAccuracy: 90,
                 improvementRate: 3.1
             },
-            date: '06/09/2568',
-            time: '14:15'
+            date: thaiDateTime.date,
+            time: thaiDateTime.time,
+            timestamp: Date.now()
         }
     ];
     
@@ -455,16 +516,10 @@ function updateSummaryCards() {
         session.sessionStats?.bestAccuracy || session.accuracy || 0
     ));
     
-    const lastWeek = new Date();
-    lastWeek.setDate(lastWeek.getDate() - 7);
-    const recentSessions = exerciseHistory.filter(session => {
-        try {
-            const sessionDate = new Date(session.date.split('/').reverse().join('-'));
-            return sessionDate >= lastWeek;
-        } catch (e) {
-            return false;
-        }
-    });
+    const lastWeek = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    const recentSessions = exerciseHistory.filter(session => 
+        session.timestamp >= lastWeek
+    );
 
     const bestEl = document.getElementById('bestSession');
     const consistencyEl = document.getElementById('consistencyScore');
@@ -526,7 +581,7 @@ function updateChart() {
     const data = recentData.map(session => session.accuracy || 0);
     const labels = recentData.map(session => {
         try {
-            const date = new Date(session.date.split('/').reverse().join('-'));
+            const date = new Date(session.timestamp);
             return date.toLocaleDateString('th-TH', { weekday: 'short' });
         } catch (e) {
             return 'N/A';
@@ -785,13 +840,12 @@ window.addEventListener('load', async function() {
         return;
     }
     
-    const today = new Date();
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    const thaiDate = today.toLocaleDateString('th-TH', options);
+    // ใช้ฟังก์ชัน getThaiDateTime() แทน
+    const thaiDateTime = getThaiDateTime();
     
     const assessmentDateEl = document.getElementById('assessmentDate');
     if (assessmentDateEl) {
-        assessmentDateEl.textContent = thaiDate;
+        assessmentDateEl.textContent = thaiDateTime.fullDate;
     }
     
     showLoading('กำลังโหลดข้อมูล...');
@@ -827,9 +881,6 @@ document.addEventListener('keydown', function(event) {
         refreshData();
     }
 });
-function goBack() {
-    window.history.back();
-}
 
 console.log("report.js loaded");
 
@@ -839,10 +890,11 @@ window.debugReport = {
     token: () => getAuthToken(),
     userData: () => getUserData(),
     refreshData: refreshData,
+    getCurrentThaiTime: () => getThaiDateTime(),
     clearData: () => {
         localStorage.removeItem('exerciseHistory');
         localStorage.removeItem('lastSessionData');
         console.log('All data cleared');
         refreshData();
     }
-};
+}

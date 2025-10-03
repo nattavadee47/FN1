@@ -1,7 +1,58 @@
+// ===== UTILITY FUNCTIONS - Thai DateTime =====
+function getThaiDateTime() {
+    const now = new Date();
+    
+    // แปลงเป็นเวลาไทย (UTC+7)
+    const thaiTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+    
+    return {
+        date: thaiTime.toLocaleDateString('th-TH', { 
+            year: 'numeric', 
+            month: '2-digit', 
+            day: '2-digit' 
+        }),
+        time: thaiTime.toLocaleTimeString('th-TH', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        }),
+        fullDate: thaiTime.toLocaleDateString('th-TH', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        }),
+        timestamp: thaiTime.getTime(),
+        iso: thaiTime.toISOString(),
+        dayOfWeek: thaiTime.toLocaleDateString('th-TH', { weekday: 'long' })
+    };
+}
+
+function formatThaiDateTime(dateString) {
+    try {
+        const date = new Date(dateString);
+        const thaiDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+        
+        return {
+            date: thaiDate.toLocaleDateString('th-TH', { 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit' 
+            }),
+            time: thaiDate.toLocaleTimeString('th-TH', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false
+            })
+        };
+    } catch (e) {
+        return { date: dateString, time: '' };
+    }
+}
 
 // ระบบตรวจจับท่าทางแบบง่าย
 const API_CONFIG = {
-    BASE_URL: 'https://bn1-1.onrender.com', // URL หลักสำหรับ API
+    BASE_URL: 'https://bn1-1.onrender.com',
     RENDER_URL: 'https://bn1-1.onrender.com',
     LOCAL_URL: 'http://localhost:4000', 
     TIMEOUT: 10000
@@ -17,6 +68,7 @@ let targetReps = 10;
 let isComplete = false;
 
 let elements = {};
+
 // MediaPipe Pose Connections
 const POSE_CONNECTIONS = [
     [0, 1], [1, 2], [2, 3], [3, 7], [0, 4], [4, 5], [5, 6], [6, 8], [9, 10],
@@ -42,12 +94,11 @@ class SimplePoseDetector {
             lastDirection: null  
         };
     }
-    // ... (โค้ดส่วน initialize, waitForMediaPipe, setupCamera, setupCanvasSize, start, selectExercise, onResults)
+
     async initialize() {
         try {
             console.log('กำลังตั้งค่า MediaPipe...');
             
-            // Wait for MediaPipe to load
             await this.waitForMediaPipe();
             
             this.pose = new Pose({
@@ -140,7 +191,10 @@ class SimplePoseDetector {
         this.isRunning = true;
         await this.camera.start();
         elements.loadingOverlay.style.display = 'none';
+        
+        // บันทึกเวลาเริ่มต้นด้วยเวลาไทย
         sessionStartTime = Date.now();
+        console.log('🕐 Session started at:', getThaiDateTime().time);
     }
 
     selectExercise(exerciseId) {
@@ -159,19 +213,16 @@ class SimplePoseDetector {
         ctx.translate(-elements.canvas.width, 0);
         ctx.drawImage(results.image, 0, 0, elements.canvas.width, elements.canvas.height);
 
-        // วาดเส้นไกด์สำหรับท่าเอียงตัว (ก่อนวาด pose)
         if (this.currentExercise === 'trunk-sway' && results.poseLandmarks) {
             this.drawTrunkSwayGuides(ctx, results.poseLandmarks);
         }
 
         if (results.poseLandmarks) {
-            // Draw pose connections and landmarks
             drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, 
                 { color: '#00FF7F', lineWidth: 4 });
             drawLandmarks(ctx, results.poseLandmarks, 
                 { color: '#FF0000', lineWidth: 2, radius: 6 });
             
-            // Analyze exercise
             this.analyzeExercise(results.poseLandmarks);
             updateStatusMessage('กำลังตรวจจับท่าทาง...');
         } else {
@@ -187,11 +238,9 @@ class SimplePoseDetector {
         
         if (!leftShoulder || !rightShoulder) return;
         
-        // คำนวณจุดกึ่งกลางของไหล่
         const shoulderCenterX = (leftShoulder.x + rightShoulder.x) / 2 * elements.canvas.width;
         const shoulderCenterY = (leftShoulder.y + rightShoulder.y) / 2 * elements.canvas.height;
         
-        // กำหนดระยะห่างของเส้นไกด์
         const guideDistance = elements.canvas.width * 0.15;
         const canvasCenter = elements.canvas.width / 2;
         const leftGuideX = canvasCenter - guideDistance;
@@ -224,11 +273,9 @@ class SimplePoseDetector {
         ctx.lineWidth = 6;
         ctx.setLineDash([]);
         ctx.beginPath();
-        // เส้นซ้าย
         ctx.moveTo(leftGuideX, shoulderCenterY - 100);
         ctx.lineTo(leftGuideX, shoulderCenterY + 200);
         ctx.stroke();
-        // เส้นขวา
         ctx.beginPath();
         ctx.moveTo(rightGuideX, shoulderCenterY - 100);
         ctx.lineTo(rightGuideX, shoulderCenterY + 200);
@@ -249,7 +296,6 @@ class SimplePoseDetector {
         ctx.lineTo(shoulderCenterX, shoulderCenterY + 200);
         ctx.stroke();
         
-        // คำนวณระยะห่างจากเป้าหมาย
         const distanceToLeft = Math.abs(shoulderCenterX - leftGuideX);
         const distanceToRight = Math.abs(shoulderCenterX - rightGuideX);
         const isInLeftZone = shoulderCenterX <= leftGuideX;
@@ -287,7 +333,6 @@ class SimplePoseDetector {
             ctx.fillStyle = '#FFFF00';
             ctx.lineWidth = 4;
             
-            // ลูกศรซ้าย
             ctx.beginPath();
             ctx.moveTo(canvasCenter - 80, shoulderCenterY - 50);
             ctx.lineTo(leftGuideX + 30, shoulderCenterY - 50);
@@ -300,7 +345,6 @@ class SimplePoseDetector {
             ctx.closePath();
             ctx.fill();
             
-            // ลูกศรขวา
             ctx.beginPath();
             ctx.moveTo(canvasCenter + 80, shoulderCenterY - 50);
             ctx.lineTo(rightGuideX - 30, shoulderCenterY - 50);
@@ -332,7 +376,6 @@ class SimplePoseDetector {
     analyzeExercise(landmarks) {
         if (!this.currentExercise || isComplete) return;
 
-        // Check cooldown period
         if (this.exerciseState.cooldownTimer > Date.now()) {
             return;
         }
@@ -355,7 +398,6 @@ class SimplePoseDetector {
 
         if (analysis && analysis.shouldIncrement) {
             this.incrementRep();
-            // Set cooldown period (2 seconds)
             this.exerciseState.cooldownTimer = Date.now() + 2000;
         }
 
@@ -374,11 +416,9 @@ class SimplePoseDetector {
             return { shouldIncrement: false, feedback: 'ไม่พบจุดไหล่หรือสะโพก' };
         }
 
-        // จุดกึ่งกลางของไหล่
         const shoulderCenterX = (leftShoulder.x + rightShoulder.x) / 2 * elements.canvas.width;
         const canvasCenter = elements.canvas.width / 2;
 
-        // ระยะเส้นไกด์ (10% ของความกว้างจอ)
         const guideDistance = elements.canvas.width * 0.10;
         const leftThreshold = canvasCenter - guideDistance;
         const rightThreshold = canvasCenter + guideDistance;
@@ -386,7 +426,6 @@ class SimplePoseDetector {
         let shouldIncrement = false;
         let feedback = 'เอียงตัวไปซ้ายหรือขวาให้ถึงเส้นไกด์';
 
-        // ✅ เอียงซ้าย
         if (shoulderCenterX <= leftThreshold) {
             if (this.exerciseState.phase === 'rest') {
                 shouldIncrement = true;
@@ -395,10 +434,7 @@ class SimplePoseDetector {
             } else {
                 feedback = 'ยังเอียงซ้ายอยู่ → ต้องกลับมาตรงกลางก่อน';
             }
-        }
-
-        // ✅ เอียงขวา
-        else if (shoulderCenterX >= rightThreshold) {
+        } else if (shoulderCenterX >= rightThreshold) {
             if (this.exerciseState.phase === 'rest') {
                 shouldIncrement = true;
                 this.exerciseState.phase = 'completed-right';
@@ -406,10 +442,7 @@ class SimplePoseDetector {
             } else {
                 feedback = 'ยังเอียงขวาอยู่ → ต้องกลับมาตรงกลางก่อน';
             }
-        }
-
-        // 🔄 อยู่ตรงกลาง → reset เพื่อพร้อมนับรอบใหม่
-        else {
+        } else {
             if (this.exerciseState.phase.startsWith('completed')) {
                 this.exerciseState.phase = 'rest';
                 feedback = 'กลับมาตรงกลางแล้ว พร้อมเอียงรอบใหม่';
@@ -431,7 +464,6 @@ class SimplePoseDetector {
             return { shouldIncrement: false, feedback: 'ไม่พบจุดแขน' };
         }
 
-        // คำนวณมุมการยกแขน (เลือกแขนที่ยกสูงสุด)
         const leftAngle = this.calculateAngle(landmarks[23], leftShoulder, leftElbow);
         const rightAngle = this.calculateAngle(landmarks[24], rightShoulder, rightElbow);
         const maxAngle = Math.max(leftAngle, rightAngle);
@@ -456,53 +488,49 @@ class SimplePoseDetector {
     }
     
     analyzeLegExtension(landmarks) {
-    const leftHip = landmarks[23];
-    const rightHip = landmarks[24];
-    const leftKnee = landmarks[25];
-    const rightKnee = landmarks[26];
-    const leftAnkle = landmarks[27];
-    const rightAnkle = landmarks[28];
+        const leftHip = landmarks[23];
+        const rightHip = landmarks[24];
+        const leftKnee = landmarks[25];
+        const rightKnee = landmarks[26];
+        const leftAnkle = landmarks[27];
+        const rightAnkle = landmarks[28];
 
-    if (!leftHip || !rightHip || !leftKnee || !rightKnee || !leftAnkle || !rightAnkle) {
-        return { shouldIncrement: false, feedback: 'ไม่พบจุดขา' };
-    }
+        if (!leftHip || !rightHip || !leftKnee || !rightKnee || !leftAnkle || !rightAnkle) {
+            return { shouldIncrement: false, feedback: 'ไม่พบจุดขา' };
+        }
 
-    // คำนวณมุมที่เข่าทั้งสองข้าง (ยิ่งตรงมาก = มุมมากขึ้น)
-    const leftKneeAngle = this.calculateAngle(leftHip, leftKnee, leftAnkle);
-    const rightKneeAngle = this.calculateAngle(rightHip, rightKnee, rightAnkle);
-    const maxKneeAngle = Math.max(leftKneeAngle, rightKneeAngle);
+        const leftKneeAngle = this.calculateAngle(leftHip, leftKnee, leftAnkle);
+        const rightKneeAngle = this.calculateAngle(rightHip, rightKnee, rightAnkle);
+        const maxKneeAngle = Math.max(leftKneeAngle, rightKneeAngle);
 
-    // คำนวณความสูงของเข่า (ยกขาขึ้น = y ลดลง)
-    const leftKneeLift = leftHip.y - leftKnee.y;
-    const rightKneeLift = rightHip.y - rightKnee.y;
-    const maxKneeLift = Math.max(leftKneeLift, rightKneeLift);
+        const leftKneeLift = leftHip.y - leftKnee.y;
+        const rightKneeLift = rightHip.y - rightKnee.y;
+        const maxKneeLift = Math.max(leftKneeLift, rightKneeLift);
 
-    let shouldIncrement = false;
-    let feedback = 'เตรียมตัวเหยียดเข่า';
+        let shouldIncrement = false;
+        let feedback = 'เตรียมตัวเหยียดเข่า';
 
-    // เกณฑ์: เหยียดเข่าตรง (มุม > 160°) และยกขาขึ้น (lift > 0.08)
-    if (maxKneeAngle > 160 && maxKneeLift > 0.08) {
-        if (this.exerciseState.phase === 'rest') {
-            shouldIncrement = true;
-            this.exerciseState.phase = 'extended';
-            feedback = '✅ เหยียดขาสำเร็จ! ดีมาก';
+        if (maxKneeAngle > 160 && maxKneeLift > 0.08) {
+            if (this.exerciseState.phase === 'rest') {
+                shouldIncrement = true;
+                this.exerciseState.phase = 'extended';
+                feedback = '✅ เหยียดขาสำเร็จ! ดีมาก';
+            } else {
+                feedback = 'กำลังเหยียดขา...';
+            }
+        } else if (maxKneeAngle < 140 && maxKneeLift < 0.05) {
+            this.exerciseState.phase = 'rest';
+            feedback = 'พร้อมเหยียดขาครั้งต่อไป';
         } else {
-            feedback = 'กำลังเหยียดขา...';
+            if (maxKneeAngle < 160) {
+                feedback = `เหยียดขาให้ตรงมากขึ้น (${Math.round(maxKneeAngle)}°)`;
+            } else if (maxKneeLift < 0.08) {
+                feedback = 'ยกขาให้สูงขึ้น';
+            }
         }
-    } else if (maxKneeAngle < 140 && maxKneeLift < 0.05) {
-        this.exerciseState.phase = 'rest';
-        feedback = 'พร้อมเหยียดขาครั้งต่อไป';
-    } else {
-        if (maxKneeAngle < 160) {
-            feedback = `เหยียดขาให้ตรงมากขึ้น (${Math.round(maxKneeAngle)}°)`;
-        } else if (maxKneeLift < 0.08) {
-            feedback = 'ยกขาให้สูงขึ้น';
-        }
+
+        return { shouldIncrement, feedback };
     }
-
-    return { shouldIncrement, feedback };
-}
-
 
     analyzeNeckTilt(landmarks) {
         const leftEar = landmarks[7];
@@ -511,7 +539,6 @@ class SimplePoseDetector {
         if (!leftEar || !rightEar) 
             return { shouldIncrement: false, feedback: 'ไม่พบจุดหู' };
         
-        // ความต่างของตำแหน่งแนวตั้ง (y) ของหู
         const earDiff = Math.abs(leftEar.y - rightEar.y);
         const tiltAngle = Math.min(45, earDiff * 200);
 
@@ -519,7 +546,6 @@ class SimplePoseDetector {
         let feedback = 'เตรียมตัวเอียงศีรษะ';
         let direction = null;
 
-        // ตรวจทิศทาง
         if (tiltAngle > 20) {
             if (leftEar.y < rightEar.y) {
                 direction = 'left';
@@ -546,7 +572,6 @@ class SimplePoseDetector {
         return { shouldIncrement, feedback };
     }
 
-
     calculateAngle(pointA, pointB, pointC) {
         if (!pointA || !pointB || !pointC) return 0;
         
@@ -571,9 +596,8 @@ class SimplePoseDetector {
         playSuccessSound();
 
         if (currentReps >= targetReps) {
-            completeExercise(); // ✅ เรียก completeExercise เมื่อทำครบ
+            completeExercise();
         } else {
-            // Reset phase after increment
             setTimeout(() => {
                 this.exerciseState.phase = 'rest';
             }, 1000);
@@ -596,11 +620,7 @@ class SimplePoseDetector {
     }
 }
 
-// -----------------------------------------------------------------
-// ⬇️ API FUNCTIONS (Modified from previous step) ⬇️
-// -----------------------------------------------------------------
-
-// ✅ ฟังก์ชันบันทึกผลการออกกำลังกาย (แก้ไขแล้ว)
+// ===== API FUNCTIONS =====
 async function saveExerciseSession(exerciseData) {
     try {
         const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
@@ -612,7 +632,6 @@ async function saveExerciseSession(exerciseData) {
 
         console.log('📤 Saving exercise session:', exerciseData);
 
-        // ✅ ใช้ API_CONFIG.BASE_URL แทน hardcode URL
         const response = await fetch(`${API_CONFIG.BASE_URL}/api/exercise-sessions`, {
             method: 'POST',
             headers: {
@@ -646,12 +665,8 @@ async function saveExerciseSession(exerciseData) {
     }
 }
 
-// -----------------------------------------------------------------
-// ⬇️ HELPER FUNCTIONS (No change needed here) ⬇️
-// -----------------------------------------------------------------
-
+// ===== HELPER FUNCTIONS =====
 function updateRepCounter() {
-    // 🛠️ ตรวจสอบว่า elements.repCounter ไม่เป็น undefined ก่อนเรียกใช้งาน
     if (elements.repCounter) {
         elements.repCounter.textContent = currentReps;
         elements.repCounter.classList.add('pulse');
@@ -696,17 +711,6 @@ function playSuccessSound() {
     }
 }
 
-// Helper Functions
-function getUserData() {
-    const userDataStr = localStorage.getItem('userData') || sessionStorage.getItem('userData');
-    if (!userDataStr) return null;
-    try {
-        return JSON.parse(userDataStr);
-    } catch (e) {
-        return null;
-    }
-}
-
 function getUserData() {
     const userDataStr = localStorage.getItem('userData') || sessionStorage.getItem('userData');
     if (!userDataStr) return null;
@@ -727,9 +731,8 @@ function getSelectedExerciseInfo() {
     if (!selectedExercise || !selectedExerciseName) return null;
     return { id: selectedExercise, name: selectedExerciseName };
 }
-// -----------------------------------------------------------------
-// ⬇️ CORE LOGIC FUNCTIONS (Modified from previous step) ⬇️
-// -----------------------------------------------------------------
+
+// ===== CORE LOGIC FUNCTIONS =====
 async function completeExercise() {
     isComplete = true;
     if (physioApp) {
@@ -740,7 +743,6 @@ async function completeExercise() {
         elements.completeOverlay.style.display = 'flex';
     }
     
-    // 1. ดึงข้อมูล
     const userData = getUserData();
     const exerciseInfo = getSelectedExerciseInfo();
     const token = getAuthToken();
@@ -752,7 +754,6 @@ async function completeExercise() {
         return;
     }
 
-    // ✅ 2. ดึง patient_id จาก API
     const patientId = await getPatientId(userData.user_id, token);
     
     if (!patientId) {
@@ -762,11 +763,13 @@ async function completeExercise() {
         return;
     }
     
-    // 3. คำนวณค่า
+    // คำนวณระยะเวลาที่ใช้ในการออกกำลังกาย
     const durationSeconds = sessionStartTime ? Math.floor((Date.now() - sessionStartTime) / 1000) : 0;
     const avgAccuracyPercent = Math.floor(Math.random() * 15) + 85;
 
-    // 4. เตรียมข้อมูลสำหรับ API
+    console.log('⏱️ Session duration:', durationSeconds, 'seconds');
+    console.log('🎯 Accuracy:', avgAccuracyPercent, '%');
+
     const apiExerciseData = {
         patientId: patientId,
         exerciseId: exerciseInfo.id,
@@ -779,15 +782,15 @@ async function completeExercise() {
         notes: `เสร็จสิ้นการฝึก ${exerciseInfo.name}`
     };
 
-    // ✅ 5. บันทึกเข้า Database
     const saveResult = await saveExerciseSession(apiExerciseData);
     
     if (!saveResult.success) {
         console.warn('⚠️ Failed to save to database, but continuing...');
     }
     
-    // 6. บันทึก Local Storage (สำหรับ report.html)
-    const currentDate = new Date();
+    // ใช้ getThaiDateTime() สำหรับบันทึก Local Storage
+    const thaiDateTime = getThaiDateTime();
+    
     const sessionData = {
         exercise: exerciseInfo.id,
         exerciseName: exerciseInfo.name,
@@ -799,9 +802,10 @@ async function completeExercise() {
             bestAccuracy: Math.floor(Math.random() * 10) + 90,
             improvementRate: (Math.random() * 10 - 5).toFixed(1)
         },
-        date: currentDate.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-        time: currentDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
-        completedAt: new Date().toISOString(),
+        date: thaiDateTime.date,
+        time: thaiDateTime.time,
+        completedAt: thaiDateTime.iso,
+        timestamp: thaiDateTime.timestamp,
         success: true
     };
 
@@ -824,15 +828,13 @@ async function completeExercise() {
     localStorage.setItem('exerciseHistory', JSON.stringify(exerciseHistory));
     
     console.log('✅ Session completed and saved');
+    console.log('📅 Thai Date/Time:', thaiDateTime.date, thaiDateTime.time);
     
-    // 7. Redirect
     setTimeout(() => {
         window.location.href = 'report.html';
     }, 3000);
 }
 
-
-// ✅ ฟังก์ชันดึง patient_id จาก API
 async function getPatientId(userId, token) {
     try {
         console.log(`🔍 Fetching patient_id for user_id: ${userId}`);
@@ -861,7 +863,6 @@ async function getPatientId(userId, token) {
     }
 }
 
-
 function goBack() {
     if (confirm('การฝึกยังไม่เสร็จสิ้น ข้อมูลจะไม่ถูกบันทึก ต้องการออกจริงหรือไม่?')) {
         cleanup();
@@ -869,7 +870,6 @@ function goBack() {
     }
 }
 
-// ✅ endExercise ถูกเรียกเมื่อกดปุ่ม "จบการฝึก"
 function endExercise() {
     if (confirm('ต้องการจบการฝึกหรือไม่? ข้อมูลจะถูกบันทึก')) {
         completeExercise(); 
@@ -882,16 +882,12 @@ function cleanup() {
     }
 }
 
-// -----------------------------------------------------------------
-// ⬇️ INITIALIZATION ⬇️
-// -----------------------------------------------------------------
-
-// Initialization
+// ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', async function() {
     try {
         console.log('กำลังโหลดระบบ...');
+        console.log('🕐 Current Thai Time:', getThaiDateTime().time);
         
-        // 🛠️ แก้ไข: กำหนดค่าให้กับตัวแปร elements ที่นี่ (เพื่อให้ Element ใน HTML โหลดเสร็จแล้ว)
         elements = {
             video: document.getElementById('input-video'),
             canvas: document.getElementById('output-canvas'),
@@ -926,17 +922,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         
     } catch (error) {
-        // ให้แสดง error.message เพื่อช่วยในการ debug
         console.error('Error:', error);
         alert(`เกิดข้อผิดพลาด: ${error.message}`);
-        // หากเกิดข้อผิดพลาดในการโหลด DOM อาจจะต้องไปที่ index2.html
         if (error.message.includes('Cannot set properties of undefined')) {
              window.location.href = 'index2.html';
         }
     }
 });
 
-// Prevent page unload without confirmation
 window.addEventListener('beforeunload', function(event) {
     if (!isComplete && currentReps > 0) {
         event.preventDefault();
@@ -944,7 +937,6 @@ window.addEventListener('beforeunload', function(event) {
     }
 });
 
-// Keyboard shortcuts
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
         goBack();
@@ -952,3 +944,4 @@ document.addEventListener('keydown', function(event) {
 });
 
 console.log('✅ ระบบตรวจจับท่าทางแบบง่ายโหลดเสร็จแล้ว');
+console.log('🇹🇭 Thai Timezone Support Enabled');
