@@ -28,10 +28,12 @@ function getThaiDateTime() {
 }
 
 // ✅ แก้ไขแล้ว - ใช้ toLocaleTimeString โดยตรง
+// ฟังก์ชันแปลงเวลาให้แสดงเวลาไทยถูกต้อง
 function formatThaiTime(dateString) {
     if (!dateString) return '-';
     
     try {
+        // สร้าง Date object จาก string
         const date = new Date(dateString);
         
         if (isNaN(date.getTime())) {
@@ -39,18 +41,11 @@ function formatThaiTime(dateString) {
             return dateString;
         }
         
-        // ✅ ลบ 7 ชั่วโมงเพราะข้อมูลเป็นเวลาไทยแล้ว
-        const adjustedDate = new Date(date.getTime() - (7 * 60 * 60 * 1000));
+        // แปลงเป็นเวลาไทย
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
         
-        const thaiTime = adjustedDate.toLocaleTimeString('th-TH', {
-            timeZone: 'Asia/Bangkok',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-        });
-        
-        console.log(`🕐 ${dateString} -> ${thaiTime}`);
-        return thaiTime;
+        return `${hours}:${minutes}`;
     } catch (e) {
         console.error('Time format error:', e);
         return dateString;
