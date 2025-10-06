@@ -533,22 +533,28 @@ function updateTable() {
         const displayDate = formatThaiDate(session.session_date);
         const displayTime = formatThaiTime(session.session_date);
         
-        console.log(`📅 Session ${i}:`, {
-            raw_date: session.session_date,
-            formatted_date: displayDate,
-            formatted_time: displayTime,
-            left: leftReps,
-            right: rightReps,
-            total: totalReps
-        });
+        // ✅ แสดงชื่อท่าภาษาไทย (ใช้ exercise_name_th ก่อน ถ้าไม่มีใช้ exerciseName)
+        const exerciseName = session.exercise_name_th || session.exerciseName || 'ท่ากายภาพ';
         
         // ✅ เพิ่มคอลัมน์เกณฑ์ประเมิน
-        const performanceLevel = getPerformanceLevel(totalReps, session.exercise || session.exerciseName);
+        const performanceLevel = getPerformanceLevel(totalReps, session.exercise_id);
+        
+        console.log(`📋 Row ${i}:`, {
+            session_id: session.session_id,
+            exercise_id: session.exercise_id,
+            exercise_name: exerciseName,
+            date: displayDate,
+            time: displayTime,
+            left: leftReps,
+            right: rightReps,
+            total: totalReps,
+            performance: performanceLevel
+        });
         
         row.innerHTML = `
             <td>${displayDate}</td>
             <td style="color: #718096;">${displayTime}</td>
-            <td><strong>${session.exerciseName}</strong></td>
+            <td><strong>${exerciseName}</strong></td>
             <td style="text-align: center;">
                 <span style="font-weight: 600; color: #3182ce;">
                     ${leftReps} ครั้ง
@@ -569,7 +575,6 @@ function updateTable() {
             </td>
         `;
     }
-
     updateTableInfo();
     updatePagination();
 }
