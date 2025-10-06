@@ -19,8 +19,18 @@
         <!-- Header -->
         <div class="header">
             <h1 class="exercise-title" id="exercise-title">กำลังโหลด...</h1>
-            <div class="rep-counter" id="rep-counter">0</div>
-            <div class="rep-target">/ <span id="target-reps">10</span> ครั้ง</div>
+            
+            <!-- แสดงเวลาถอยหลัง -->
+            <div class="timer-container">
+                <div class="timer-display" id="timer-display">2:00</div>
+                <div class="timer-label">เวลาที่เหลือ</div>
+            </div>
+            
+            <!-- แสดงจำนวนครั้งที่ทำได้ -->
+            <div class="reps-container">
+                <div class="rep-counter" id="rep-counter">0</div>
+                <div class="rep-label">จำนวนครั้งที่ทำได้</div>
+            </div>
         </div>
 
         <!-- Video Container -->
@@ -62,7 +72,7 @@
             <i class="fas fa-trophy"></i>
         </div>
         <div class="complete-text">สำเร็จแล้ว!</div>
-        <div class="complete-subtitle">คุณทำครบ 10 ครั้งแล้ว</div>
+        <div class="complete-subtitle">คุณทำได้ <span id="final-reps">0</span> ครั้งใน 2 นาที</div>
     </div>
 
     <script src="js/potex.js"></script>

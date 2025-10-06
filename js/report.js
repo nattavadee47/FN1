@@ -1,8 +1,9 @@
-// ===== UTILITY FUNCTIONS - Thai DateTime =====
+// ===== ฟังก์ชันจัดการวันที่และเวลาไทย (แก้ไขแล้ว) =====
+
 function getThaiDateTime() {
     const now = new Date();
     
-    // แปลงเป็นเวลาไทย (UTC+7)
+    // แปลงเป็นเวลาไทย
     const thaiTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
     
     return {
@@ -21,37 +22,119 @@ function getThaiDateTime() {
             month: 'long', 
             day: 'numeric' 
         }),
-        timestamp: thaiTime.toISOString(),
-        dayOfWeek: thaiTime.toLocaleDateString('th-TH', { weekday: 'short' })
+        timestamp: now.toISOString(),
+        dayOfWeek: thaiTime.toLocaleDateString('th-TH', { weekday: 'long' })
     };
 }
 
-function formatThaiDate(dateString) {
-    try {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('th-TH', { 
-            year: 'numeric', 
-            month: '2-digit', 
-            day: '2-digit' 
-        });
-    } catch (e) {
-        return dateString;
-    }
-}
-
+// ✅ แก้ไขแล้ว - ใช้ toLocaleTimeString โดยตรง
 function formatThaiTime(dateString) {
+    if (!dateString) return '-';
+    
     try {
         const date = new Date(dateString);
-        return date.toLocaleTimeString('th-TH', { 
-            hour: '2-digit', 
+        
+        if (isNaN(date.getTime())) {
+            console.error('Invalid time:', dateString);
+            return dateString;
+        }
+        
+        // ✅ ลบ 7 ชั่วโมงเพราะข้อมูลเป็นเวลาไทยแล้ว
+        const adjustedDate = new Date(date.getTime() - (7 * 60 * 60 * 1000));
+        
+        const thaiTime = adjustedDate.toLocaleTimeString('th-TH', {
+            timeZone: 'Asia/Bangkok',
+            hour: '2-digit',
             minute: '2-digit',
             hour12: false
         });
+        
+        console.log(`🕐 ${dateString} -> ${thaiTime}`);
+        return thaiTime;
     } catch (e) {
+        console.error('Time format error:', e);
+        return dateString;
+    }
+}
+// ✅ ฟังก์ชันแปลงวันที่เป็นภาษาไทย
+function formatThaiDate(dateString) {
+    if (!dateString) return '-';
+    
+    try {
+        const date = new Date(dateString);
+        
+        if (isNaN(date.getTime())) {
+            console.error('Invalid date:', dateString);
+            return dateString;
+        }
+        
+        // แปลงเป็นรูปแบบไทย พร้อม timezone Bangkok
+        return date.toLocaleDateString('th-TH', {
+            timeZone: 'Asia/Bangkok',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+    } catch (e) {
+        console.error('Date format error:', e);
         return dateString;
     }
 }
 
+// ✅ ฟังก์ชันแปลงวันที่และเวลาแบบเต็ม
+function formatThaiDateTime(dateString) {
+    if (!dateString) return '-';
+    
+    try {
+        const date = new Date(dateString);
+        
+        if (isNaN(date.getTime())) {
+            return dateString;
+        }
+        
+        const dateStr = date.toLocaleDateString('th-TH', {
+            timeZone: 'Asia/Bangkok',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        
+        const timeStr = date.toLocaleTimeString('th-TH', {
+            timeZone: 'Asia/Bangkok',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+        
+        return `${dateStr} เวลา ${timeStr} น.`;
+    } catch (e) {
+        console.error('DateTime format error:', e);
+        return dateString;
+    }
+}
+
+// ✅ ทดสอบการทำงาน
+function testDateTimeConversion() {
+    console.log('=== ทดสอบการแปลงเวลา ===');
+    
+    // ตัวอย่างเวลา UTC จาก database
+    const testDates = [
+        '2025-01-06T13:28:00.000Z',  // เวลา UTC 13:28 = เวลาไทย 20:28
+        '2025-01-06T06:30:00.000Z',  // เวลา UTC 06:30 = เวลาไทย 13:30
+        '2025-01-05T17:00:00.000Z'   // เวลา UTC 17:00 = เวลาไทย 00:00 (วันถัดไป)
+    ];
+    
+    testDates.forEach(utcDate => {
+        console.log('---');
+        console.log('UTC:', utcDate);
+        console.log('วันที่ไทย:', formatThaiDate(utcDate));
+        console.log('เวลาไทย:', formatThaiTime(utcDate));
+        console.log('แบบเต็ม:', formatThaiDateTime(utcDate));
+    });
+}
+
+// เรียกใช้ทดสอบ
+testDateTimeConversion();
 // ===== CONFIG =====
 const API_CONFIG = {
     BASE_URL: 'https://bn1-1.onrender.com',
@@ -85,7 +168,7 @@ function getAuthToken() {
         }
     }
     
-    console.log('🔍 Token search result:', {
+    console.log('🔑 Token search result:', {
         found: !!token,
         source: token ? (localStorage.getItem('authToken') ? 'localStorage' : 'sessionStorage') : 'NOT FOUND',
         preview: token ? token.substring(0, 20) + '...' : 'NULL'
@@ -241,7 +324,7 @@ function updatePatientInfo(patientInfo) {
 
 // ===== DATA LOADING FUNCTIONS =====
 async function loadExerciseData() {
-    console.log('Loading exercise data from API...');
+    console.log('📊 Loading exercise data from API...');
     
     try {
         const token = getAuthToken();
@@ -255,7 +338,7 @@ async function loadExerciseData() {
             return;
         }
 
-        console.log('🔒 Using token:', token.substring(0, 20) + '...');
+        console.log('🔑 Using token:', token.substring(0, 20) + '...');
 
         const response = await fetch(`${API_CONFIG.BASE_URL}/api/exercise-sessions`, {
             method: 'GET',
@@ -265,43 +348,52 @@ async function loadExerciseData() {
             }
         });
 
-        console.log('API Response status:', response.status);
+        console.log('📡 API Response status:', response.status);
 
         if (!response.ok) {
             const errorData = await response.json();
-            console.error('API Error:', errorData);
+            console.error('❌ API Error:', errorData);
             throw new Error(errorData.message || `API Error: ${response.status}`);
         }
 
         const result = await response.json();
-        console.log('API Result:', result);
+        console.log('✅ API Result:', result);
         
         if (result.success && result.data && result.data.length > 0) {
-            console.log('✅ Loaded', result.data.length, 'sessions from database');
+            console.log(`✅ Loaded ${result.data.length} sessions from database`);
             
+            // ✅ แปลงข้อมูลให้ตรงกับโครงสร้าง
             exerciseHistory = result.data.map(session => {
-                // แปลงวันที่และเวลาเป็นรูปแบบไทย
-                const sessionDate = session.session_date ? new Date(session.session_date) : new Date();
+                const leftReps = parseInt(session.actual_reps_left) || 0;
+                const rightReps = parseInt(session.actual_reps_right) || 0;
+                const totalReps = leftReps + rightReps;
+                
+                console.log(`Session ${session.session_id}:`, {
+                    left: leftReps,
+                    right: rightReps,
+                    total: totalReps,
+                    date: session.session_date
+                });
                 
                 return {
                     exercise: session.exercise_id,
                     exerciseName: session.exercise_name_th || session.exercise_name_en || 'ท่ากายภาพ',
-                    reps: session.actual_reps || 0,
+                    actual_reps_left: leftReps,
+                    actual_reps_right: rightReps,
+                    actual_reps: totalReps,
                     accuracy: parseFloat(session.accuracy_percent) || 0,
-                    sessionStats: {
-                        exerciseTime: session.session_duration || 0,
-                        bestAccuracy: parseFloat(session.accuracy_percent) || 0,
-                        improvementRate: 0
-                    },
-                    date: formatThaiDate(sessionDate),
-                    time: formatThaiTime(sessionDate),
+                    duration_seconds: parseInt(session.duration_seconds) || 0,
+                    session_date: session.session_date,
                     notes: session.notes || '',
-                    timestamp: sessionDate.getTime()
+                    timestamp: new Date(session.session_date).getTime()
                 };
             });
 
             // เรียงตามเวลาล่าสุด
             exerciseHistory.sort((a, b) => b.timestamp - a.timestamp);
+
+            console.log('✅ Processed history:', exerciseHistory.length, 'sessions');
+            console.log('Sample data:', exerciseHistory[0]);
 
             updateTable();
             updateSummaryCards();
@@ -316,7 +408,7 @@ async function loadExerciseData() {
     } catch (error) {
         console.error('❌ Error loading exercise data:', error);
         
-        if (error.message.includes('token') || error.message.includes('Access')) {
+        if (error.message.includes('token') || error.message.includes('401')) {
             alert('Session หมดอายุ กรุณาเข้าสู่ระบบใหม่');
             setTimeout(() => {
                 window.location.href = 'login.html';
@@ -324,7 +416,7 @@ async function loadExerciseData() {
             return;
         }
         
-        console.log('Falling back to sample data...');
+        console.log('⚠️ Falling back to sample data...');
         createSampleData();
     }
 }
@@ -385,13 +477,12 @@ function createSampleData() {
         {
             exercise: 'arm-raise-forward',
             exerciseName: 'ท่ายกแขนไปข้างหน้า',
-            reps: 15,
+            actual_reps_left: 8,
+            actual_reps_right: 7,
+            actual_reps: 15,
             accuracy: 78,
-            sessionStats: {
-                exerciseTime: 420,
-                bestAccuracy: 85,
-                improvementRate: 5.2
-            },
+            duration_seconds: 420,
+            session_date: thaiDateTime.timestamp,
             date: thaiDateTime.date,
             time: thaiDateTime.time,
             timestamp: Date.now()
@@ -399,13 +490,12 @@ function createSampleData() {
         {
             exercise: 'leg-extension',
             exerciseName: 'ท่าเหยียดเข่าตรง',
-            reps: 12,
+            actual_reps_left: 6,
+            actual_reps_right: 6,
+            actual_reps: 12,
             accuracy: 82,
-            sessionStats: {
-                exerciseTime: 380,
-                bestAccuracy: 90,
-                improvementRate: 3.1
-            },
+            duration_seconds: 380,
+            session_date: thaiDateTime.timestamp,
             date: thaiDateTime.date,
             time: thaiDateTime.time,
             timestamp: Date.now()
@@ -429,7 +519,7 @@ function updateTable() {
 
     if (exerciseHistory.length === 0) {
         const row = tbody.insertRow();
-        row.innerHTML = `<td colspan="6" style="text-align: center; color: #718096; padding: 2rem;">ยังไม่มีข้อมูลการออกกำลังกาย</td>`;
+        row.innerHTML = `<td colspan="7" style="text-align: center; color: #718096; padding: 2rem;">ยังไม่มีข้อมูลการออกกำลังกาย</td>`;
         return;
     }
 
@@ -440,23 +530,53 @@ function updateTable() {
         const session = exerciseHistory[i];
         const row = tbody.insertRow();
         
+        const leftReps = parseInt(session.actual_reps_left) || 0;
+        const rightReps = parseInt(session.actual_reps_right) || 0;
+        const totalReps = leftReps + rightReps;
+        
+        // ✅ ใช้ฟังก์ชันแปลงวันที่และเวลาที่แก้ไขแล้ว
+        const displayDate = formatThaiDate(session.session_date);
+        const displayTime = formatThaiTime(session.session_date);
+        
+        console.log(`📅 Session ${i}:`, {
+            raw_date: session.session_date,
+            formatted_date: displayDate,
+            formatted_time: displayTime,
+            left: leftReps,
+            right: rightReps,
+            total: totalReps
+        });
+        
+        // ✅ เพิ่มคอลัมน์เกณฑ์ประเมิน
+        const performanceLevel = getPerformanceLevel(totalReps, session.exercise || session.exerciseName);
+        
         row.innerHTML = `
-            <td>${session.date}<br><small style="color: #718096;">${session.time}</small></td>
+            <td>${displayDate}</td>
+            <td style="color: #718096;">${displayTime}</td>
             <td><strong>${session.exerciseName}</strong></td>
-            <td><span style="font-weight: 600;">${session.reps} ครั้ง</span></td>
-            <td>
-                <span class="accuracy-badge ${getAccuracyClass(session.accuracy)}">
-                    ${session.accuracy}%
+            <td style="text-align: center;">
+                <span style="font-weight: 600; color: #3182ce;">
+                    ${leftReps} ครั้ง
                 </span>
             </td>
-            <td>${formatDuration(session.sessionStats?.exerciseTime || 0)}</td>
-            <td>${generateComment(session)}</td>
+            <td style="text-align: center;">
+                <span style="font-weight: 600; color: #38a169;">
+                    ${rightReps} ครั้ง
+                </span>
+            </td>
+            <td style="text-align: center;">
+                <span style="font-weight: 700; color: #2563eb; font-size: 16px;">
+                    ${totalReps} ครั้ง
+                </span>
+            </td>
+            <td style="text-align: center;">
+                ${performanceLevel}
+            </td>
         `;
     }
 
     updateTableInfo();
     updatePagination();
-    addRefreshButton();
 }
 
 function getAccuracyClass(accuracy) {
@@ -466,19 +586,6 @@ function getAccuracyClass(accuracy) {
     return 'poor';
 }
 
-function formatDuration(seconds) {
-    if (!seconds) return '0:00 นาที';
-    const minutes = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${minutes}:${secs.toString().padStart(2, '0')} นาที`;
-}
-
-function generateComment(session) {
-    if (session.accuracy >= 90) return 'ทำได้ดีมาก!';
-    if (session.accuracy >= 80) return 'ความก้าวหน้าดี';
-    if (session.accuracy >= 70) return 'ต้องการปรับปรุง';
-    return 'ควรฝึกเพิ่มเติม';
-}
 
 function updateTableInfo() {
     if (exerciseHistory.length === 0) return;
@@ -512,9 +619,7 @@ function updateSummaryCards() {
     const totalAccuracy = exerciseHistory.reduce((sum, session) => sum + (session.accuracy || 0), 0);
     const averageAccuracy = Math.round(totalAccuracy / exerciseHistory.length);
     
-    const bestAccuracy = Math.max(...exerciseHistory.map(session => 
-        session.sessionStats?.bestAccuracy || session.accuracy || 0
-    ));
+    const bestAccuracy = Math.max(...exerciseHistory.map(session => session.accuracy || 0));
     
     const lastWeek = Date.now() - (7 * 24 * 60 * 60 * 1000);
     const recentSessions = exerciseHistory.filter(session => 
@@ -535,9 +640,11 @@ function updateSummaryCards() {
     }
 }
 
+// แก้ไขฟังก์ชัน updateRecommendations ที่บรรทัด 542
 function updateRecommendations() {
     if (exerciseHistory.length === 0) return;
 
+    // ✅ แก้ไขตรงนี้ - เปลี่ยนจาก session เป็น s
     const averageAccuracy = exerciseHistory.reduce((sum, s) => sum + (s.accuracy || 0), 0) / exerciseHistory.length;
 
     const exerciseRecs = document.getElementById('exerciseRecommendations');
@@ -547,7 +654,7 @@ function updateRecommendations() {
 
     if (averageAccuracy < 70) {
         exerciseRecs.innerHTML = `
-            <li>ควรฝึกท่าทางพื้นฐานให้ช้าและถูกต้องก่อน</li>
+            <li>ควรฝึกท่าทางพื้นฐานให้ชำนาญและถูกต้องก่อน</li>
             <li>เพิ่มเวลาการฝึกเป็น 2 ครั้งต่อวัน</li>
             <li>ขอคำแนะนำเพิ่มเติมจากผู้เชี่ยวชาญ</li>
         `;
@@ -742,7 +849,24 @@ function initTableFunctions() {
         });
     }
 }
-
+function getPerformanceLevel(actualReps, exerciseName) {
+    // เกณฑ์แต่ละท่า
+    const criteria = {
+        'shoulder-flexion': { good: 10, excellent: 15 },
+        'lateral-trunk': { good: 5, excellent: 10 },
+        'knee-extension': { good: 10, excellent: 15 }
+    };
+    
+    const standard = criteria[exerciseName] || { good: 10, excellent: 15 };
+    
+    if (actualReps >= standard.excellent) {
+        return '<span class="level-badge excellent">ดีเยี่ยม ⭐</span>';
+    } else if (actualReps >= standard.good) {
+        return '<span class="level-badge good">ดี ✓</span>';
+    } else {
+        return '<span class="level-badge needs-work">ควรพัฒนา</span>';
+    }
+}
 function displayFilteredResults(filteredData) {
     const tbody = document.getElementById('therapyTableBody');
     if (!tbody) return;
@@ -751,23 +875,41 @@ function displayFilteredResults(filteredData) {
 
     if (filteredData.length === 0) {
         const row = tbody.insertRow();
-        row.innerHTML = `<td colspan="6" style="text-align: center; color: #718096; padding: 2rem;">ไม่พบข้อมูลที่ค้นหา</td>`;
+        row.innerHTML = `<td colspan="8" style="text-align: center; color: #718096; padding: 2rem;">ไม่พบข้อมูลที่ค้นหา</td>`;
         return;
     }
 
     filteredData.forEach(session => {
         const row = tbody.insertRow();
+        const hasLeftRight = (session.actual_reps_left > 0 || session.actual_reps_right > 0);
+        const leftReps = session.actual_reps_left || 0;
+        const rightReps = session.actual_reps_right || 0;
+        const totalReps = session.actual_reps || (leftReps + rightReps);
+        
         row.innerHTML = `
-            <td>${session.date}<br><small style="color: #718096;">${session.time}</small></td>
+            <td>${formatThaiDate(session.session_date)}</td>
+            <td style="color: #718096;">${formatThaiTime(session.session_date)}</td>
             <td><strong>${session.exerciseName}</strong></td>
-            <td><span style="font-weight: 600;">${session.reps} ครั้ง</span></td>
-            <td>
+            <td style="text-align: center;">
+                <span style="font-weight: 600; color: #3182ce;">
+                    ${hasLeftRight ? leftReps + ' ครั้ง' : '-'}
+                </span>
+            </td>
+            <td style="text-align: center;">
+                <span style="font-weight: 600; color: #38a169;">
+                    ${hasLeftRight ? rightReps + ' ครั้ง' : '-'}
+                </span>
+            </td>
+            <td style="text-align: center;">
+                <span style="font-weight: 700; color: #2563eb; font-size: 16px;">
+                    ${totalReps} ครั้ง
+                </span>
+            </td>
+            <td style="text-align: center;">
                 <span class="accuracy-badge ${getAccuracyClass(session.accuracy)}">
                     ${session.accuracy}%
                 </span>
             </td>
-            <td>${formatDuration(session.sessionStats?.exerciseTime || 0)}</td>
-            <td>${generateComment(session)}</td>
         `;
     });
 
@@ -831,7 +973,29 @@ function hideLoading() {
 
 // ===== INITIALIZATION =====
 window.addEventListener('load', async function() {
-    console.log('🚀 Report page loading...');
+    console.log('=== TIMEZONE DEBUG ===');
+    
+    // ทดสอบเวลาปัจจุบัน
+    const now = new Date();
+    console.log('🕐 Browser Local Time:', now.toString());
+    console.log('🌍 UTC Time:', now.toISOString());
+    console.log('🇹🇭 Bangkok Time:', now.toLocaleString('th-TH', { 
+        timeZone: 'Asia/Bangkok',
+        year: 'numeric',
+        month: '2-digit', 
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    }));
+    
+    // ทดสอบการแปลงจาก database
+    const testDBDate = '2025-01-06T13:28:00.000Z'; // ตัวอย่าง UTC
+    const testDate = new Date(testDBDate);
+    console.log('---');
+    console.log('📅 DB Date (UTC):', testDBDate);
+    console.log('🔄 Formatted Thai:', formatThaiDateTime(testDBDate));
+    console.log('==================');
     
     const token = getAuthToken();
     if (!token) {
@@ -840,7 +1004,6 @@ window.addEventListener('load', async function() {
         return;
     }
     
-    // ใช้ฟังก์ชัน getThaiDateTime() แทน
     const thaiDateTime = getThaiDateTime();
     
     const assessmentDateEl = document.getElementById('assessmentDate');
@@ -859,17 +1022,16 @@ window.addEventListener('load', async function() {
         
         initTableFunctions();
         
-        console.log('✅ Report page initialized');
-        console.log('📊 Exercise history:', exerciseHistory.length, 'sessions');
+        console.log('✅ Report initialized');
+        console.log('📊 Sessions:', exerciseHistory.length);
         
     } catch (error) {
-        console.error('❌ Error initializing report:', error);
-        alert('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+        console.error('❌ Error:', error);
+        alert('เกิดข้อผิดพลาด');
     } finally {
         hideLoading();
     }
 });
-
 // ===== KEYBOARD SHORTCUTS =====
 document.addEventListener('keydown', function(event) {
     if (event.ctrlKey && event.key === 'r') {
@@ -882,7 +1044,7 @@ document.addEventListener('keydown', function(event) {
     }
 });
 
-console.log("report.js loaded");
+console.log("✅ report.js loaded");
 
 // ===== DEBUG UTILITIES =====
 window.debugReport = {
@@ -897,4 +1059,4 @@ window.debugReport = {
         console.log('All data cleared');
         refreshData();
     }
-}
+};

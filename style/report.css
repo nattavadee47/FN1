@@ -936,3 +936,363 @@ body {
         padding: 6px 4px;
     }
 }
+/* เพิ่มส่วนนี้เข้าไปในไฟล์ report.css เดิม */
+
+/* ===== ACCURACY BADGE STYLES ===== */
+.accuracy-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    min-width: 60px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.accuracy-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.accuracy-badge.excellent {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: 2px solid rgba(16, 185, 129, 0.3);
+}
+
+.accuracy-badge.good {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border: 2px solid rgba(59, 130, 246, 0.3);
+}
+
+.accuracy-badge.fair {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    border: 2px solid rgba(245, 158, 11, 0.3);
+}
+
+.accuracy-badge.poor {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    border: 2px solid rgba(239, 68, 68, 0.3);
+}
+
+/* ===== TABLE ENHANCEMENTS ===== */
+.therapy-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.therapy-table th {
+    background: linear-gradient(135deg, #4DBEDB 0%, #003B7A 100%);
+    color: white;
+    padding: 16px 12px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 14px;
+    border-bottom: 3px solid #003B7A;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.therapy-table td {
+    padding: 14px 12px;
+    border-bottom: 1px solid rgba(77, 190, 219, 0.1);
+    vertical-align: middle;
+    text-align: center;
+}
+
+.therapy-table tbody tr {
+    transition: all 0.3s ease;
+}
+
+.therapy-table tbody tr:hover {
+    background: linear-gradient(90deg, rgba(77, 190, 219, 0.05) 0%, rgba(77, 190, 219, 0.1) 50%, rgba(77, 190, 219, 0.05) 100%);
+    transform: scale(1.01);
+    box-shadow: 0 2px 8px rgba(77, 190, 219, 0.15);
+}
+
+.therapy-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* วันที่ */
+.therapy-table td:nth-child(1) {
+    font-weight: 600;
+    color: #003B7A;
+    font-size: 14px;
+}
+
+/* เวลา */
+.therapy-table td:nth-child(2) {
+    color: #718096;
+    font-size: 13px;
+}
+
+/* ชื่อท่าทาง */
+.therapy-table td:nth-child(3) {
+    font-weight: 600;
+    color: #2d3748;
+    text-align: left;
+    padding-left: 20px;
+}
+
+/* เวลาที่ใช้ */
+.therapy-table td:nth-child(4) {
+    color: #4a5568;
+    font-weight: 500;
+}
+
+/* จำนวนซ้าย - สีน้ำเงิน */
+.therapy-table td:nth-child(5) {
+    color: #3182ce;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+/* จำนวนขวา - สีเขียว */
+.therapy-table td:nth-child(6) {
+    color: #38a169;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+/* รวม - เด่นที่สุด */
+.therapy-table td:nth-child(7) {
+    color: #2563eb;
+    font-weight: 700;
+    font-size: 16px;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(37, 99, 235, 0.1));
+}
+
+/* เกณฑ์ความแม่นยำ */
+.therapy-table td:nth-child(8) {
+    padding: 8px;
+}
+
+/* ===== STRIPED TABLE VARIANT (Optional) ===== */
+.therapy-table tbody tr:nth-child(even) {
+    background: rgba(77, 190, 219, 0.02);
+}
+
+.therapy-table tbody tr:nth-child(odd) {
+    background: white;
+}
+
+/* ===== RESPONSIVE ENHANCEMENTS ===== */
+@media (max-width: 768px) {
+    .therapy-table {
+        font-size: 12px;
+    }
+    
+    .therapy-table th,
+    .therapy-table td {
+        padding: 10px 6px;
+    }
+    
+    .therapy-table td:nth-child(3) {
+        padding-left: 10px;
+    }
+    
+    .accuracy-badge {
+        padding: 4px 10px;
+        font-size: 11px;
+        min-width: 50px;
+    }
+    
+    .therapy-table td:nth-child(7) {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .therapy-table {
+        font-size: 11px;
+    }
+    
+    .therapy-table th,
+    .therapy-table td {
+        padding: 8px 4px;
+    }
+    
+    .accuracy-badge {
+        padding: 3px 8px;
+        font-size: 10px;
+        min-width: 45px;
+    }
+    
+    .therapy-table td:nth-child(5),
+    .therapy-table td:nth-child(6),
+    .therapy-table td:nth-child(7) {
+        font-size: 13px;
+    }
+}
+
+/* ===== PRINT STYLES ===== */
+@media print {
+    .accuracy-badge {
+        border: 1px solid #000 !important;
+        box-shadow: none !important;
+    }
+    
+    .accuracy-badge.excellent {
+        background: #10b981 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .accuracy-badge.good {
+        background: #3b82f6 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .accuracy-badge.fair {
+        background: #f59e0b !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .accuracy-badge.poor {
+        background: #ef4444 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .therapy-table tbody tr:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+}
+
+/* ===== ANIMATION FOR TABLE ROWS ===== */
+@keyframes fadeInRow {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.therapy-table tbody tr {
+    animation: fadeInRow 0.5s ease-out forwards;
+}
+
+.therapy-table tbody tr:nth-child(1) { animation-delay: 0.05s; }
+.therapy-table tbody tr:nth-child(2) { animation-delay: 0.10s; }
+.therapy-table tbody tr:nth-child(3) { animation-delay: 0.15s; }
+.therapy-table tbody tr:nth-child(4) { animation-delay: 0.20s; }
+.therapy-table tbody tr:nth-child(5) { animation-delay: 0.25s; }
+.therapy-table tbody tr:nth-child(6) { animation-delay: 0.30s; }
+.therapy-table tbody tr:nth-child(7) { animation-delay: 0.35s; }
+.therapy-table tbody tr:nth-child(8) { animation-delay: 0.40s; }
+.therapy-table tbody tr:nth-child(9) { animation-delay: 0.45s; }
+.therapy-table tbody tr:nth-child(10) { animation-delay: 0.50s; }
+
+/* ===== LOADING STATE ===== */
+.therapy-table.loading {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.therapy-table.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(77, 190, 219, 0.3);
+    border-top: 4px solid #4DBEDB;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    transform: translate(-50%, -50%);
+}
+
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* ===== EMPTY STATE ===== */
+.therapy-table tbody tr td[colspan] {
+    padding: 3rem 2rem !important;
+    font-size: 16px !important;
+    color: #a0aec0 !important;
+    font-weight: 500 !important;
+}
+
+/* ===== HIGHLIGHT BEST PERFORMANCE ===== */
+.therapy-table tbody tr.best-performance {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%) !important;
+    border-left: 4px solid #10b981;
+}
+
+.therapy-table tbody tr.best-performance td:first-child::before {
+    content: '🏆 ';
+    font-size: 14px;
+}
+
+/* ===== TABLE HEADER ICONS ===== */
+.therapy-table th {
+    position: relative;
+}
+
+.therapy-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.therapy-table th.sortable:hover {
+    background: linear-gradient(135deg, #3b9db3 0%, #002a5c 100%);
+}
+
+.therapy-table th.sortable::after {
+    content: '⇅';
+    position: absolute;
+    right: 8px;
+    opacity: 0.5;
+    font-size: 12px;
+}
+
+.therapy-table th.sorted-asc::after {
+    content: '↑';
+    opacity: 1;
+    color: #8CC63F;
+}
+
+.therapy-table th.sorted-desc::after {
+    content: '↓';
+    opacity: 1;
+    color: #8CC63F;
+}
+.level-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.level-badge.excellent {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    color: #000;
+}
+
+.level-badge.good {
+    background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+    color: #fff;
+}
+
+.level-badge.needs-work {
+    background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+    color: #fff;
+}
