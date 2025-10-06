@@ -372,7 +372,7 @@ async function loadExerciseData() {
                 
                 return {
                     exercise: session.exercise_id,
-                    exerciseName: session.exercise_name_th || session.exercise_name_en || 'ท่ากายภาพ',
+                    exerciseName: session.exercise_name_th || session.exercise_name_en || session.description || 'ท่ากายภาพ',
                     actual_reps_left: leftReps,
                     actual_reps_right: rightReps,
                     actual_reps: totalReps,
